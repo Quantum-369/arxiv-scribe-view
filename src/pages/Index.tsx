@@ -11,6 +11,7 @@ import { fetchArxivPapers, ArxivPaper } from "@/utils/arxivApi";
 import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
 import { extractPdfText } from "@/utils/pdfExtractor";
 import { Paper } from "@/types/paper";
+import { usePagination } from "@/hooks/usePagination";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,10 +26,22 @@ const Index = () => {
     sortBy: "relevance",
   });
 
-  // Gemini-powered search
-  const handleSearch = async (query: string) => {
+  const pagination = usePagination({ resultsPerPage: 50 });
+
+  // Enhanced search with pagination support
+  const handleSearch = async (query: string, pageOverride?: number) => {
+    const targetPage = pageOverride ?? 1;
+    if (targetPage === 1) {
+      pagination.resetPagination();
+    }
+    
     setLoading(true);
     setSearchQuery(query);
+
+    const searchParams = {
+      maxResults: pagination.resultsPerPage,
+      startIndex: pageOverride ? (pageOverride - 1) * pagination.resultsPerPage : pagination.startIndex,
+    };
 
     if (!geminiApiKey) {
       console.log("No Gemini API key found, falling back to basic search");
@@ -40,13 +53,14 @@ const Index = () => {
           category: parsedQuery.category,
           year: parsedQuery.dateFilter,
           sortBy: parsedQuery.sortBy,
-          maxResults: 16,
-          startIndex: 0,
+          ...searchParams,
         });
-        setPapers(results);
+        setPapers(results.papers);
+        pagination.setTotalResults(results.totalResults);
       } catch (error) {
         console.error("Error fetching papers:", error);
         setPapers([]);
+        pagination.setTotalResults(0);
       }
       setLoading(false);
       return;
@@ -67,16 +81,21 @@ const Index = () => {
           category: parsedQuery.category,
           year: parsedQuery.dateFilter,
           sortBy: parsedQuery.sortBy,
-          maxResults: 16,
-          startIndex: 0,
+          ...searchParams,
         });
-        setPapers(results);
+        setPapers(results.papers);
+        pagination.setTotalResults(results.totalResults);
         setLoading(false);
         return;
       }
 
+      // Modify the URL to include pagination parameters
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('max_results', searchParams.maxResults.toString());
+      urlObj.searchParams.set('start', searchParams.startIndex.toString());
+
       // Use the generated URL directly for fetching
-      const response = await fetch(url, { 
+      const response = await fetch(urlObj.toString(), { 
         headers: { Accept: "application/atom+xml" } 
       });
       
@@ -90,6 +109,12 @@ const Index = () => {
       // Parse the XML response
       const parser = new DOMParser();
       const doc = parser.parseFromString(xml, "application/xml");
+      
+      // Extract total results
+      const totalResultsElement = doc.getElementsByTagName("opensearch:totalResults")[0];
+      const totalResults = totalResultsElement ? parseInt(totalResultsElement.textContent || "0", 10) : 0;
+      pagination.setTotalResults(totalResults);
+      
       const entries = Array.from(doc.getElementsByTagName("entry"));
       
       const results: ArxivPaper[] = entries.map((entry) => {
@@ -123,19 +148,30 @@ const Index = () => {
         };
       });
 
-      console.log("Parsed results:", results.length, "papers");
+      console.log("Parsed results:", results.length, "papers, total:", totalResults);
       setPapers(results);
     } catch (error) {
       console.error("Error in search:", error);
       setPapers([]);
+      pagination.setTotalResults(0);
     }
     setLoading(false);
+  };
+
+  const handlePageChange = (page: number) => {
+    pagination.goToPage(page);
+    if (searchQuery) {
+      handleSearch(searchQuery, page);
+      // Scroll to top of results
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
     if (searchQuery) {
-      handleSearch(searchQuery);
+      pagination.resetPagination();
+      handleSearch(searchQuery, 1);
     }
   };
 
@@ -199,7 +235,7 @@ const Index = () => {
                 </div>
                 <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
                 <SearchBar
-                  onSearch={handleSearch}
+                  onSearch={(query) => handleSearch(query, 1)}
                   value={searchQuery}
                   onChange={setSearchQuery}
                 />
@@ -212,7 +248,10 @@ const Index = () => {
             <div className="max-w-4xl mx-auto">
               <div className="mb-4">
                 <p className="text-sm lg:text-base text-gray-600">
-                  {loading ? "Searching..." : `${papers.length} papers found`}
+                  {loading ? "Searching..." : pagination.totalResults > 0 ? 
+                    `${pagination.totalResults.toLocaleString()} papers found` : 
+                    `${papers.length} papers found`
+                  }
                   {geminiApiKey && " (AI-enhanced search enabled)"}
                 </p>
               </div>
@@ -220,6 +259,13 @@ const Index = () => {
                 papers={papers}
                 onViewPaper={handleViewPaper}
                 loading={loading}
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalResults={pagination.totalResults}
+                resultsPerPage={pagination.resultsPerPage}
+                onPageChange={handlePageChange}
+                hasNextPage={pagination.hasNextPage}
+                hasPrevPage={pagination.hasPrevPage}
               />
             </div>
           </div>

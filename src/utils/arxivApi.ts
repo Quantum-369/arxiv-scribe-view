@@ -10,6 +10,11 @@ export interface ArxivPaper {
   citations?: number; // not available via arXiv API
 }
 
+export interface ArxivResponse {
+  papers: ArxivPaper[];
+  totalResults: number;
+}
+
 const BASE_URL = "https://export.arxiv.org/api/query";
 
 export function buildArxivQuery(params: {
@@ -44,7 +49,7 @@ export function buildArxivQuery(params: {
     `search_query=${encodeURIComponent(q.join("+AND+") || "all:")}`,
     `sortBy=${sortBy}`,
     `sortOrder=descending`,
-    `max_results=${Math.min(params.maxResults ?? 16, 32)}`,
+    `max_results=${params.maxResults ?? 50}`, // Increased default from 16 to 50
     `start=${params.startIndex ?? 0}`,
   ].join("&");
 
@@ -53,7 +58,7 @@ export function buildArxivQuery(params: {
 
 export async function fetchArxivPapers(
   params: Parameters<typeof buildArxivQuery>[0]
-): Promise<ArxivPaper[]> {
+): Promise<ArxivResponse> {
   const url = buildArxivQuery(params);
   const response = await fetch(url, { headers: { Accept: "application/atom+xml" } });
   if (!response.ok) throw new Error("Failed to fetch from arXiv");
@@ -61,11 +66,16 @@ export async function fetchArxivPapers(
   return parseArxivAtomFeed(xml);
 }
 
-function parseArxivAtomFeed(xml: string): ArxivPaper[] {
+function parseArxivAtomFeed(xml: string): ArxivResponse {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, "application/xml");
+  
+  // Extract total results from opensearch:totalResults
+  const totalResultsElement = doc.getElementsByTagName("opensearch:totalResults")[0];
+  const totalResults = totalResultsElement ? parseInt(totalResultsElement.textContent || "0", 10) : 0;
+  
   const entries = Array.from(doc.getElementsByTagName("entry"));
-  return entries.map((entry) => {
+  const papers = entries.map((entry) => {
     const id = entry.getElementsByTagName("id")[0]?.textContent ?? "";
     const title = entry.getElementsByTagName("title")[0]?.textContent?.replace(/\s+/g, " ").trim() ?? "";
     const authorTags = Array.from(entry.getElementsByTagName("author"));
@@ -94,4 +104,6 @@ function parseArxivAtomFeed(xml: string): ArxivPaper[] {
       pdfUrl,
     };
   });
+
+  return { papers, totalResults };
 }

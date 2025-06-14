@@ -1,5 +1,6 @@
 
 import PaperCard from "./PaperCard";
+import PaginationControls from "./PaginationControls";
 
 interface Paper {
   id: string;
@@ -16,9 +17,28 @@ interface PapersListProps {
   papers: Paper[];
   onViewPaper: (paper: Paper) => void;
   loading?: boolean;
+  // Pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalResults?: number;
+  resultsPerPage?: number;
+  onPageChange?: (page: number) => void;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
 }
 
-const PapersList = ({ papers, onViewPaper, loading }: PapersListProps) => {
+const PapersList = ({ 
+  papers, 
+  onViewPaper, 
+  loading,
+  currentPage = 1,
+  totalPages = 1,
+  totalResults = 0,
+  resultsPerPage = 50,
+  onPageChange,
+  hasNextPage = false,
+  hasPrevPage = false,
+}: PapersListProps) => {
   if (loading) {
     return (
       <div className="space-y-4">
@@ -42,13 +62,28 @@ const PapersList = ({ papers, onViewPaper, loading }: PapersListProps) => {
 
   return (
     <div className="space-y-4">
-      {papers.map((paper) => (
-        <PaperCard 
-          key={paper.id} 
-          paper={paper} 
-          onViewPaper={onViewPaper}
+      <div className="space-y-4">
+        {papers.map((paper) => (
+          <PaperCard 
+            key={paper.id} 
+            paper={paper} 
+            onViewPaper={onViewPaper}
+          />
+        ))}
+      </div>
+      
+      {onPageChange && totalPages > 1 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalResults={totalResults}
+          resultsPerPage={resultsPerPage}
+          onPageChange={onPageChange}
+          hasNextPage={hasNextPage}
+          hasPrevPage={hasPrevPage}
+          isLoading={loading}
         />
-      ))}
+      )}
     </div>
   );
 };
