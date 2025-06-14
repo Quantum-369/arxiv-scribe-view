@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -6,6 +5,7 @@ import SearchFilters from "@/components/SearchFilters";
 import PapersList from "@/components/PapersList";
 import PaperViewer from "@/components/PaperViewer";
 import FloatingChatBubble from "@/components/FloatingChatBubble";
+import ApiKeyInput from "@/components/ApiKeyInput";
 import { parseNaturalLanguageQuery } from "@/utils/queryParser";
 import { fetchArxivPapers, ArxivPaper } from "@/utils/arxivApi";
 import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
@@ -15,6 +15,7 @@ const Index = () => {
   const [papers, setPapers] = useState<ArxivPaper[]>([]);
   const [selectedPaper, setSelectedPaper] = useState<ArxivPaper | null>(null);
   const [loading, setLoading] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
   const [filters, setFilters] = useState({
     category: "all",
     year: "",
@@ -27,10 +28,7 @@ const Index = () => {
     setLoading(true);
     setSearchQuery(query);
 
-    // Check for API key in environment variables
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    
-    if (!apiKey) {
+    if (!geminiApiKey) {
       console.log("No Gemini API key found, falling back to basic search");
       // Fallback to basic search without Gemini
       const parsedQuery = parseNaturalLanguageQuery(query);
@@ -55,7 +53,7 @@ const Index = () => {
     try {
       console.log("Using Gemini to generate arXiv URL for query:", query);
       // Ask Gemini to build optimized arXiv API URL for this query
-      const url = await getArxivUrlFromQuery(query, apiKey);
+      const url = await getArxivUrlFromQuery(query, geminiApiKey);
       console.log("Generated URL:", url);
       
       if (!url) {
@@ -74,15 +72,6 @@ const Index = () => {
         setLoading(false);
         return;
       }
-
-      // Extract parameters from the generated URL
-      const urlObj = new URL(url);
-      const searchParams = urlObj.searchParams;
-      const search_query = searchParams.get("search_query") || "";
-      const max_results = searchParams.get("max_results") || "16";
-      const start = searchParams.get("start") || "0";
-
-      console.log("Extracted params:", { search_query, max_results, start });
 
       // Use the generated URL directly for fetching
       const response = await fetch(url, { 
@@ -170,12 +159,8 @@ const Index = () => {
                 <div className="text-center mb-4">
                   <h2 className="text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
                   <p className="text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
-                  {!import.meta.env.VITE_GEMINI_API_KEY && (
-                    <p className="text-sm text-amber-600 mt-2">
-                      Add VITE_GEMINI_API_KEY to your environment for enhanced AI-powered search
-                    </p>
-                  )}
                 </div>
+                <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
                 <SearchBar
                   onSearch={handleSearch}
                   value={searchQuery}
@@ -189,7 +174,10 @@ const Index = () => {
           <div className="flex-1 overflow-auto p-6">
             <div className="max-w-4xl mx-auto">
               <div className="mb-4">
-                <p className="text-gray-600">{loading ? "Searching..." : `${papers.length} papers found`}</p>
+                <p className="text-gray-600">
+                  {loading ? "Searching..." : `${papers.length} papers found`}
+                  {geminiApiKey && " (AI-enhanced search enabled)"}
+                </p>
               </div>
               <PapersList
                 papers={papers}
