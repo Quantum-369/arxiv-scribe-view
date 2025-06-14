@@ -1,4 +1,7 @@
 
+import pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+
 interface PdfExtractionResult {
   text: string;
   error?: string;
@@ -15,34 +18,28 @@ const CORS_PROXIES = [
 const tryFetchWithProxy = async (pdfUrl: string, proxyUrl: string): Promise<Response> => {
   const proxiedUrl = proxyUrl + encodeURIComponent(pdfUrl);
   console.log(`Trying proxy: ${proxyUrl}`);
-  
   const response = await fetch(proxiedUrl, {
     method: 'GET',
     headers: {
       'Accept': 'application/pdf,*/*',
     },
   });
-  
   if (!response.ok) {
     throw new Error(`Proxy failed: ${response.status} ${response.statusText}`);
   }
-  
   return response;
 };
 
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Fetching PDF from:', pdfUrl);
-    
-    // Import pdfjs-dist dynamically
-    const pdfjsLib = await import('pdfjs-dist');
-    
-    // Set worker source for PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    
+
+    // --- Proper worker config for Vite + pdfjs-dist ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
     let response: Response | null = null;
     let lastError: Error | null = null;
-    
+
     // Try each CORS proxy in sequence
     for (const proxyUrl of CORS_PROXIES) {
       try {
@@ -55,7 +52,7 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
         continue;
       }
     }
-    
+
     // If all proxies failed, try direct fetch as last resort
     if (!response) {
       try {
@@ -66,36 +63,38 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
         }
         console.log('Direct fetch succeeded');
       } catch (error) {
-        throw new Error(`All proxy attempts failed. Last error: ${lastError?.message}. Direct fetch also failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `All proxy attempts failed. Last error: ${lastError?.message}. Direct fetch also failed: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        );
       }
     }
-    
+
     const arrayBuffer = await response.arrayBuffer();
-    
+
     console.log('Parsing PDF content...');
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
+
     let fullText = '';
-    
+
     // Extract text from each page
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      
       const pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ');
-      
       fullText += pageText + '\n';
     }
-    
+
     console.log('PDF text extraction complete, length:', fullText.length);
     return { text: fullText.trim() };
   } catch (error) {
     console.error('Error extracting PDF text:', error);
-    return { 
-      text: '', 
-      error: error instanceof Error ? error.message : 'Unknown error during PDF extraction' 
+    return {
+      text: '',
+      error: error instanceof Error ? error.message : 'Unknown error during PDF extraction',
     };
   }
 };
