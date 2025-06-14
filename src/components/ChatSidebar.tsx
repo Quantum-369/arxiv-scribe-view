@@ -21,7 +21,9 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
     {
       id: '1',
       type: 'assistant',
-      content: `Hello! I'm here to help you understand ${paperTitle || 'this paper'}. You can ask me questions about the methodology, findings, implications, or anything else you'd like to know.`,
+      content: paperTitle 
+        ? `Hello! I'm here to help you understand "${paperTitle}". You can ask me questions about the methodology, findings, implications, or anything else you'd like to know.`
+        : "Hello! Select a paper to start chatting about it, or ask me general questions about research!",
       timestamp: new Date()
     }
   ]);
@@ -47,7 +49,9 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: `This is a simulated response to your question: "${inputValue}". In a real implementation, this would connect to an AI service to provide detailed analysis of the paper.`,
+        content: paperTitle 
+          ? `This is a simulated response about "${paperTitle}" to your question: "${inputValue}". In a real implementation, this would connect to an AI service to provide detailed analysis of the paper.`
+          : `This is a simulated response to your question: "${inputValue}". In a real implementation, this would connect to an AI service.`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
@@ -63,19 +67,16 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border-l border-gray-200">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-600" />
-          <h3 className="font-semibold text-gray-900">Chat with Paper</h3>
+    <div className="flex flex-col h-full bg-white">
+      {/* Header - only show in full sidebar mode */}
+      {!paperTitle && (
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-600" />
+            <h3 className="font-semibold text-gray-900">Research Assistant</h3>
+          </div>
         </div>
-        {paperTitle && (
-          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-            Discussing: {paperTitle}
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
@@ -122,8 +123,8 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask about this paper..."
-            className="flex-1"
+            placeholder={paperTitle ? "Ask about this paper..." : "Ask me anything..."}
+            className="flex-1 text-sm"
             disabled={isLoading}
           />
           <Button 

@@ -1,23 +1,24 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Filter } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SearchFiltersProps {
   onFiltersChange: (filters: any) => void;
+  initialFilters?: any;
 }
 
-const SearchFilters = ({ onFiltersChange }: SearchFiltersProps) => {
+const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
     year: '',
     author: '',
-    sortBy: 'relevance'
+    sortBy: 'relevance',
+    ...initialFilters
   });
 
   const categories = [
@@ -28,6 +29,12 @@ const SearchFilters = ({ onFiltersChange }: SearchFiltersProps) => {
     'Economics',
     'Statistics'
   ];
+
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(prev => ({ ...prev, ...initialFilters }));
+    }
+  }, [initialFilters]);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };

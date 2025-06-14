@@ -1,11 +1,11 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import SearchFilters from "@/components/SearchFilters";
 import PapersList from "@/components/PapersList";
 import PaperViewer from "@/components/PaperViewer";
-import ChatSidebar from "@/components/ChatSidebar";
+import FloatingChatBubble from "@/components/FloatingChatBubble";
+import { parseNaturalLanguageQuery } from "@/utils/queryParser";
 
 interface Paper {
   id: string;
@@ -57,30 +57,78 @@ const Index = () => {
   const [papers, setPapers] = useState<Paper[]>(mockPapers);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    category: 'all',
+    year: '',
+    author: '',
+    sortBy: 'relevance'
+  });
 
   const handleSearch = (query: string) => {
     setLoading(true);
     console.log("Searching for:", query);
     
+    // Parse natural language query
+    const parsedQuery = parseNaturalLanguageQuery(query);
+    console.log("Parsed query:", parsedQuery);
+    
+    // Update filters based on parsed query
+    const newFilters = {
+      category: parsedQuery.category || filters.category,
+      year: parsedQuery.dateFilter || filters.year,
+      author: filters.author,
+      sortBy: parsedQuery.sortBy || filters.sortBy
+    };
+    setFilters(newFilters);
+    
     // Simulate search with mock data
     setTimeout(() => {
-      if (query.trim()) {
-        const filteredPapers = mockPapers.filter(paper => 
-          paper.title.toLowerCase().includes(query.toLowerCase()) ||
-          paper.abstract.toLowerCase().includes(query.toLowerCase()) ||
-          paper.authors.some(author => author.toLowerCase().includes(query.toLowerCase()))
+      let filteredPapers = mockPapers;
+      
+      // Apply search terms
+      if (parsedQuery.searchTerms.length > 0) {
+        const searchTermsStr = parsedQuery.searchTerms.join(' ');
+        filteredPapers = mockPapers.filter(paper => 
+          paper.title.toLowerCase().includes(searchTermsStr) ||
+          paper.abstract.toLowerCase().includes(searchTermsStr) ||
+          paper.authors.some(author => author.toLowerCase().includes(searchTermsStr))
         );
-        setPapers(filteredPapers);
-      } else {
-        setPapers(mockPapers);
       }
+      
+      // Apply category filter
+      if (parsedQuery.category && parsedQuery.category !== 'all') {
+        filteredPapers = filteredPapers.filter(paper => 
+          paper.category.toLowerCase().replace(' ', '-') === parsedQuery.category
+        );
+      }
+      
+      // Apply sorting
+      if (parsedQuery.sortBy === 'citations') {
+        filteredPapers.sort((a, b) => (b.citations || 0) - (a.citations || 0));
+      } else if (parsedQuery.sortBy === 'date') {
+        filteredPapers.sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+      }
+      
+      setPapers(filteredPapers);
       setLoading(false);
     }, 500);
   };
 
-  const handleFiltersChange = (filters: any) => {
-    console.log("Filters changed:", filters);
-    // In a real app, this would filter the papers based on the filters
+  // Auto-search when component mounts or when filters change
+  useEffect(() => {
+    if (searchQuery) {
+      handleSearch(searchQuery);
+    }
+  }, []);
+
+  const handleFiltersChange = (newFilters: any) => {
+    console.log("Filters changed:", newFilters);
+    setFilters(newFilters);
+    
+    // Re-apply search with new filters
+    if (searchQuery) {
+      handleSearch(searchQuery);
+    }
   };
 
   const handleViewPaper = (paper: Paper) => {
@@ -102,6 +150,10 @@ const Index = () => {
           <div className="bg-white border-b border-gray-200 p-6">
             <div className="max-w-4xl mx-auto">
               <div className="flex flex-col space-y-4">
+                <div className="text-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
+                  <p className="text-gray-600">Try: "Today's published AI papers" or "Latest machine learning research"</p>
+                </div>
                 <SearchBar 
                   onSearch={handleSearch}
                   value={searchQuery}
@@ -131,20 +183,17 @@ const Index = () => {
 
         {/* Paper Viewer */}
         {selectedPaper && (
-          <div className="w-1/2 flex">
-            <div className="w-2/3 border-l border-gray-200">
-              <PaperViewer 
-                paper={selectedPaper} 
-                onClose={handleClosePaper}
-              />
-            </div>
-            {/* Chat Sidebar */}
-            <div className="w-1/3">
-              <ChatSidebar paperTitle={selectedPaper.title} />
-            </div>
+          <div className="w-1/2 border-l border-gray-200">
+            <PaperViewer 
+              paper={selectedPaper} 
+              onClose={handleClosePaper}
+            />
           </div>
         )}
       </div>
+
+      {/* Floating Chat Bubble */}
+      <FloatingChatBubble paperTitle={selectedPaper?.title} />
     </div>
   );
 };
