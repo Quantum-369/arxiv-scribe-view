@@ -4,6 +4,32 @@ interface PdfExtractionResult {
   error?: string;
 }
 
+// List of CORS proxy services to try in order
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://proxy.cors.sh/',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+
+const tryFetchWithProxy = async (pdfUrl: string, proxyUrl: string): Promise<Response> => {
+  const proxiedUrl = proxyUrl + encodeURIComponent(pdfUrl);
+  console.log(`Trying proxy: ${proxyUrl}`);
+  
+  const response = await fetch(proxiedUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/pdf,*/*',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Proxy failed: ${response.status} ${response.statusText}`);
+  }
+  
+  return response;
+};
+
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Fetching PDF from:', pdfUrl);
@@ -14,16 +40,34 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     // Set worker source for PDF.js
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     
-    // Use CORS proxy to bypass CORS restrictions
-    const corsProxyUrl = 'https://api.allorigins.win/raw?url=';
-    const proxiedUrl = corsProxyUrl + encodeURIComponent(pdfUrl);
+    let response: Response | null = null;
+    let lastError: Error | null = null;
     
-    console.log('Using CORS proxy:', proxiedUrl);
+    // Try each CORS proxy in sequence
+    for (const proxyUrl of CORS_PROXIES) {
+      try {
+        response = await tryFetchWithProxy(pdfUrl, proxyUrl);
+        console.log(`Successfully fetched PDF using proxy: ${proxyUrl}`);
+        break;
+      } catch (error) {
+        console.log(`Proxy ${proxyUrl} failed:`, error);
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        continue;
+      }
+    }
     
-    const response = await fetch(proxiedUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status}`);
+    // If all proxies failed, try direct fetch as last resort
+    if (!response) {
+      try {
+        console.log('All proxies failed, trying direct fetch...');
+        response = await fetch(pdfUrl);
+        if (!response.ok) {
+          throw new Error(`Direct fetch failed: ${response.status}`);
+        }
+        console.log('Direct fetch succeeded');
+      } catch (error) {
+        throw new Error(`All proxy attempts failed. Last error: ${lastError?.message}. Direct fetch also failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
     
     const arrayBuffer = await response.arrayBuffer();
