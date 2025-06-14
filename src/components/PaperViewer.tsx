@@ -1,18 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { X, Download, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface Paper {
-  id: string;
-  title: string;
-  authors: string[];
-  abstract: string;
-  category: string;
-  publishedDate: string;
-  pdfUrl: string;
-  citations?: number;
-}
+import { Paper } from "@/types/paper";
 
 interface PaperViewerProps {
   paper: Paper;

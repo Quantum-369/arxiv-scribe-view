@@ -9,11 +9,13 @@ import ApiKeyInput from "@/components/ApiKeyInput";
 import { parseNaturalLanguageQuery } from "@/utils/queryParser";
 import { fetchArxivPapers, ArxivPaper } from "@/utils/arxivApi";
 import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
+import { extractPdfText } from "@/utils/pdfExtractor";
+import { Paper } from "@/types/paper";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [papers, setPapers] = useState<ArxivPaper[]>([]);
-  const [selectedPaper, setSelectedPaper] = useState<ArxivPaper | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [loading, setLoading] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [filters, setFilters] = useState({
@@ -137,8 +139,44 @@ const Index = () => {
     }
   };
 
-  const handleViewPaper = (paper: ArxivPaper) => {
-    setSelectedPaper(paper);
+  const handleViewPaper = async (paper: ArxivPaper) => {
+    // Convert ArxivPaper to Paper format and start text extraction
+    const paperWithMetadata: Paper = {
+      id: paper.id,
+      title: paper.title,
+      authors: paper.authors,
+      abstract: paper.abstract,
+      category: paper.category,
+      publishedDate: paper.publishedDate,
+      pdfUrl: paper.pdfUrl,
+      citations: paper.citations,
+    };
+    
+    setSelectedPaper(paperWithMetadata);
+    
+    // Extract PDF text in the background
+    console.log('Starting PDF text extraction for:', paper.title);
+    try {
+      const { text, error } = await extractPdfText(paper.pdfUrl);
+      
+      setSelectedPaper(prev => prev ? {
+        ...prev,
+        fullText: text || undefined,
+        textExtractionError: error
+      } : null);
+      
+      if (text) {
+        console.log('PDF text extraction successful, length:', text.length);
+      } else if (error) {
+        console.log('PDF text extraction failed:', error);
+      }
+    } catch (error) {
+      console.error('Error during PDF text extraction:', error);
+      setSelectedPaper(prev => prev ? {
+        ...prev,
+        textExtractionError: 'Failed to extract PDF text'
+      } : null);
+    }
   };
 
   const handleClosePaper = () => {

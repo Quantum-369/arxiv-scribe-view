@@ -1,19 +1,8 @@
-
 import { useState } from "react";
 import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatSidebar from "./ChatSidebar";
-
-interface Paper {
-  id: string;
-  title: string;
-  authors: string[];
-  abstract: string;
-  category: string;
-  publishedDate: string;
-  pdfUrl: string;
-  citations?: number;
-}
+import { Paper } from "@/types/paper";
 
 interface FloatingChatBubbleProps {
   paper?: Paper;
