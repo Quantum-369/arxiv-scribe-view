@@ -1,9 +1,9 @@
+
 import * as pdfjsLib from "pdfjs-dist";
-// We are using Vite's `?url` feature to get a URL to the worker script.
-// This tells Vite to handle copying the worker file to the build output
-// and provides us with the correct path. We use the `.mjs` version as it's an
-// ES Module, which works best with Vite.
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+// We will no longer import the worker locally, instead using a CDN.
+// This is a more robust solution that avoids Vite bundling issues.
+// import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 interface PdfExtractionResult {
   text: string;
@@ -37,8 +37,9 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Fetching PDF from:', pdfUrl);
 
-    // Set up the worker using the URL provided by Vite's import.
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    // Set up the worker from a CDN. This is more reliable than local bundling.
+    // The pdfjsLib.version property ensures we use the same version for the worker and the library.
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
 
     let response: Response | null = null;
     let lastError: Error | null = null;
