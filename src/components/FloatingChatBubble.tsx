@@ -4,12 +4,23 @@ import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatSidebar from "./ChatSidebar";
 
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  category: string;
+  publishedDate: string;
+  pdfUrl: string;
+  citations?: number;
+}
+
 interface FloatingChatBubbleProps {
-  paperTitle?: string;
+  paper?: Paper;
   geminiApiKey?: string;
 }
 
-const FloatingChatBubble = ({ paperTitle, geminiApiKey }: FloatingChatBubbleProps) => {
+const FloatingChatBubble = ({ paper, geminiApiKey }: FloatingChatBubbleProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   if (isOpen) {
@@ -26,7 +37,7 @@ const FloatingChatBubble = ({ paperTitle, geminiApiKey }: FloatingChatBubbleProp
           </Button>
         </div>
         <div className="h-[calc(100%-60px)]">
-          <ChatSidebar paperTitle={paperTitle} geminiApiKey={geminiApiKey} />
+          <ChatSidebar paper={paper} geminiApiKey={geminiApiKey} />
         </div>
       </div>
     );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -198,7 +197,7 @@ const Index = () => {
         )}
       </div>
       {/* Floating Chat Bubble */}
-      {selectedPaper && <FloatingChatBubble paperTitle={selectedPaper.title} geminiApiKey={geminiApiKey} />}
+      {selectedPaper && <FloatingChatBubble paper={selectedPaper} geminiApiKey={geminiApiKey} />}
     </div>
   );
 };

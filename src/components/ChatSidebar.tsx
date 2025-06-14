@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,18 +11,29 @@ interface Message {
   timestamp: Date;
 }
 
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  category: string;
+  publishedDate: string;
+  pdfUrl: string;
+  citations?: number;
+}
+
 interface ChatSidebarProps {
-  paperTitle?: string;
+  paper?: Paper;
   geminiApiKey?: string;
 }
 
-const ChatSidebar = ({ paperTitle, geminiApiKey }: ChatSidebarProps) => {
+const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
-      content: paperTitle 
-        ? `Hello! I'm here to help you understand "${paperTitle}". You can ask me questions about the methodology, findings, implications, or anything else you'd like to know.`
+      content: paper 
+        ? `Hello! I'm here to help you understand "${paper.title}" by ${paper.authors.join(", ")}. You can ask me questions about the methodology, findings, implications, or anything else you'd like to know about this ${paper.category} paper published on ${paper.publishedDate}.`
         : "Hello! Select a paper to start chatting about it, or ask me general questions about research!",
       timestamp: new Date()
     }
@@ -39,8 +49,16 @@ const ChatSidebar = ({ paperTitle, geminiApiKey }: ChatSidebarProps) => {
     try {
       const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
       
-      const systemPrompt = paperTitle 
-        ? `You are an expert research assistant helping users understand the academic paper titled "${paperTitle}". Provide helpful, accurate insights about research papers, methodologies, findings, and implications. Keep responses concise and informative.`
+      const systemPrompt = paper 
+        ? `You are an expert research assistant helping users understand an academic paper. Here are the paper details:
+
+Title: ${paper.title}
+Authors: ${paper.authors.join(", ")}
+Category: ${paper.category}
+Published: ${paper.publishedDate}
+Abstract: ${paper.abstract}
+
+Based on this information, provide helpful, accurate insights about the paper's methodology, findings, implications, and context within the field. If users ask about specific details not available in the metadata, acknowledge the limitation and provide insights based on what is available. Keep responses concise and informative.`
         : "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative.";
 
       const prompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
@@ -134,7 +152,7 @@ const ChatSidebar = ({ paperTitle, geminiApiKey }: ChatSidebarProps) => {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header - only show in full sidebar mode */}
-      {!paperTitle && (
+      {!paper && (
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-blue-600" />
@@ -188,7 +206,7 @@ const ChatSidebar = ({ paperTitle, geminiApiKey }: ChatSidebarProps) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={paperTitle ? "Ask about this paper..." : "Ask me anything..."}
+            placeholder={paper ? "Ask about this paper..." : "Ask me anything..."}
             className="flex-1 text-xs lg:text-sm"
             disabled={isLoading}
           />
