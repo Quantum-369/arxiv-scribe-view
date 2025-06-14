@@ -1,6 +1,17 @@
 
 import pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
+// Remove the faulty worker import and use a static asset instead.
+
+/**
+ * IMPORTANT: To ensure PDF.js works with Vite and your environment,
+ * you must copy 'pdf.worker.js' from the pdfjs-dist package into your public directory:
+ * 
+ *    cp node_modules/pdfjs-dist/build/pdf.worker.js public/pdf.worker.js
+ * 
+ * This makes the worker available at '/pdf.worker.js'.
+ * 
+ * If you do not do this, PDF extraction will fail!
+ */
 
 interface PdfExtractionResult {
   text: string;
@@ -34,8 +45,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Fetching PDF from:', pdfUrl);
 
-    // --- Proper worker config for Vite + pdfjs-dist ---
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    // Set up the worker to the public static path (see note above)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.js";
 
     let response: Response | null = null;
     let lastError: Error | null = null;
