@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -8,6 +7,7 @@ import PaperViewer from "@/components/PaperViewer";
 import FloatingChatBubble from "@/components/FloatingChatBubble";
 import { parseNaturalLanguageQuery } from "@/utils/queryParser";
 import { fetchArxivPapers, ArxivPaper } from "@/utils/arxivApi";
+import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
 
 interface Paper {
   id: string;
@@ -54,6 +54,8 @@ const mockPapers: Paper[] = [
   }
 ];
 
+const GEMINI_API_KEY_PLACEHOLDER = "YOUR_GEMINI_API_KEY_HERE"; // <-- Provide your Gemini API key here or via environment variable
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [papers, setPapers] = useState<ArxivPaper[]>([]);
@@ -66,38 +68,54 @@ const Index = () => {
     sortBy: "relevance",
   });
 
+  // Gemini-powered search
   const handleSearch = async (query: string) => {
     setLoading(true);
     setSearchQuery(query);
 
-    const parsedQuery = parseNaturalLanguageQuery(query);
-    const newFilters = {
-      category: parsedQuery.category || filters.category,
-      year: parsedQuery.dateFilter || filters.year,
-      author: filters.author,
-      sortBy: parsedQuery.sortBy || filters.sortBy,
-    };
-    setFilters(newFilters);
+    // You must provide your Gemini API key in GEMINI_API_KEY
+    const apiKey =
+      process.env.GEMINI_API_KEY ||
+      (window && (window as any).GEMINI_API_KEY) ||
+      GEMINI_API_KEY_PLACEHOLDER;
+    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+      alert(
+        "Please set your Gemini API key as GEMINI_API_KEY (in your project env or connect to Supabase secrets)."
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
-      // If searchTerms only include non-informative noise, don't send them, let default "all"
-      let searchTerms =
-        !parsedQuery.searchTerms || parsedQuery.searchTerms.length === 0
-          ? undefined
-          : parsedQuery.searchTerms;
+      // Ask Gemini to build optimized arXiv API URL for this query
+      const url = await getArxivUrlFromQuery(query, apiKey);
+      if (!url) {
+        alert("Sorry, could not understand or generate a valid arXiv URL for your query.");
+        setPapers([]);
+        setLoading(false);
+        return;
+      }
+      // Fetch live arXiv results using that URL
+      // We only need the query/path, not base, for fetchArxivPapers, so:
+      const urlObj = new URL(url);
+      const searchParams = urlObj.searchParams;
+      const search_query = searchParams.get("search_query") || undefined;
+      const sortBy = searchParams.get("sortBy") || undefined;
+      const sortOrder = searchParams.get("sortOrder") || undefined;
+      const max_results = searchParams.get("max_results") || undefined;
+      const start = searchParams.get("start") || undefined;
 
       const results = await fetchArxivPapers({
-        searchTerms,
-        category: parsedQuery.category,
-        year: parsedQuery.dateFilter,
-        sortBy: parsedQuery.sortBy,
-        maxResults: 16,
-        // author: can be added as a filter, if needed
+        // This expects a break-down, so map URL params (or just pass the URL if you want to enhance fetchArxivPapers)
+        searchTerms: search_query && search_query !== "all:" ? search_query.split("+AND+").map(x => x.replace(/^all:/, "")) : undefined,
+        sortBy: sortBy,
+        maxResults: max_results ? Number(max_results) : 16,
+        startIndex: start ? Number(start) : 0,
+        // Advanced: Category/year filter extraction from the search_query param can be done here
       });
       setPapers(results);
     } catch (e) {
       setPapers([]);
-      // Optional: show user friendly error here
     }
     setLoading(false);
   };
