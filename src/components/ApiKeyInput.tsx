@@ -35,25 +35,25 @@ const ApiKeyInput = ({ onApiKeyChange }: ApiKeyInputProps) => {
   };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4 mb-4">
       <div className="flex items-center gap-2 mb-2">
         <Key className="h-4 w-4 text-blue-600" />
-        <Label className="text-blue-800 font-medium">Gemini API Key (Optional)</Label>
+        <Label className="text-blue-800 font-medium text-sm lg:text-base">Gemini API Key (Optional)</Label>
       </div>
-      <p className="text-sm text-blue-700 mb-3">
-        Add your Gemini API key for enhanced AI-powered search. Get one from{" "}
+      <p className="text-xs lg:text-sm text-blue-700 mb-3">
+        Add your Gemini API key for enhanced AI-powered search and chat. Get one from{" "}
         <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">
           Google AI Studio
         </a>
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Input
             type={showKey ? "text" : "password"}
             placeholder="Enter your Gemini API key..."
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            className="pr-10"
+            className="pr-10 text-sm"
           />
           <Button
             type="button"
@@ -65,14 +65,16 @@ const ApiKeyInput = ({ onApiKeyChange }: ApiKeyInputProps) => {
             {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
-        <Button onClick={handleSaveKey} size="sm">
-          Save
-        </Button>
-        {apiKey && (
-          <Button onClick={handleClearKey} variant="outline" size="sm">
-            Clear
+        <div className="flex gap-2">
+          <Button onClick={handleSaveKey} size="sm" className="flex-1 sm:flex-none">
+            Save
           </Button>
-        )}
+          {apiKey && (
+            <Button onClick={handleClearKey} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

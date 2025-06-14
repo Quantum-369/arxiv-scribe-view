@@ -14,9 +14,10 @@ interface Message {
 
 interface ChatSidebarProps {
   paperTitle?: string;
+  geminiApiKey?: string;
 }
 
-const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
+const ChatSidebar = ({ paperTitle, geminiApiKey }: ChatSidebarProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -30,6 +31,59 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const getChatResponse = async (userMessage: string): Promise<string> => {
+    if (!geminiApiKey) {
+      return "Please add your Gemini API key in the search section above to enable AI chat functionality.";
+    }
+
+    try {
+      const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
+      
+      const systemPrompt = paperTitle 
+        ? `You are an expert research assistant helping users understand the academic paper titled "${paperTitle}". Provide helpful, accurate insights about research papers, methodologies, findings, and implications. Keep responses concise and informative.`
+        : "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative.";
+
+      const prompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
+
+      const body = {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "text/plain",
+          maxOutputTokens: 500,
+          temperature: 0.7
+        }
+      };
+
+      const response = await fetch(modelUrl + `?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const result = await response.json();
+      
+      if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
+        return result.candidates[0].content.parts[0].text.trim();
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      return "Sorry, I encountered an error while processing your question. Please check your API key and try again.";
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -41,22 +95,33 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const aiResponse = await getChatResponse(currentInput);
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: paperTitle 
-          ? `This is a simulated response about "${paperTitle}" to your question: "${inputValue}". In a real implementation, this would connect to an AI service to provide detailed analysis of the paper.`
-          : `This is a simulated response to your question: "${inputValue}". In a real implementation, this would connect to an AI service.`,
+        content: aiResponse,
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "Sorry, I encountered an error. Please try again.",
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -87,13 +152,13 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[85%] lg:max-w-[80%] rounded-lg p-3 ${
                   message.type === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
-                <p className="text-sm">{message.content}</p>
+                <p className="text-xs lg:text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className={`text-xs mt-1 ${
                   message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
                 }`}>
@@ -124,7 +189,7 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={paperTitle ? "Ask about this paper..." : "Ask me anything..."}
-            className="flex-1 text-sm"
+            className="flex-1 text-xs lg:text-sm"
             disabled={isLoading}
           />
           <Button 
@@ -133,7 +198,7 @@ const ChatSidebar = ({ paperTitle }: ChatSidebarProps) => {
             size="sm"
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3 w-3 lg:h-4 lg:w-4" />
           </Button>
         </div>
       </div>

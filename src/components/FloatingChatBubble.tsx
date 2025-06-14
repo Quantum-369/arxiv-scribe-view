@@ -6,16 +6,17 @@ import ChatSidebar from "./ChatSidebar";
 
 interface FloatingChatBubbleProps {
   paperTitle?: string;
+  geminiApiKey?: string;
 }
 
-const FloatingChatBubble = ({ paperTitle }: FloatingChatBubbleProps) => {
+const FloatingChatBubble = ({ paperTitle, geminiApiKey }: FloatingChatBubbleProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   if (isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 w-96 h-96 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+      <div className="fixed bottom-4 right-4 w-full max-w-sm lg:w-96 h-96 bg-white border border-gray-200 rounded-lg shadow-xl z-50 mx-4 lg:mx-0">
         <div className="flex items-center justify-between p-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Chat with Paper</h3>
+          <h3 className="font-semibold text-gray-900 text-sm lg:text-base">Chat with Paper</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -25,7 +26,7 @@ const FloatingChatBubble = ({ paperTitle }: FloatingChatBubbleProps) => {
           </Button>
         </div>
         <div className="h-[calc(100%-60px)]">
-          <ChatSidebar paperTitle={paperTitle} />
+          <ChatSidebar paperTitle={paperTitle} geminiApiKey={geminiApiKey} />
         </div>
       </div>
     );
@@ -34,10 +35,10 @@ const FloatingChatBubble = ({ paperTitle }: FloatingChatBubbleProps) => {
   return (
     <Button
       onClick={() => setIsOpen(true)}
-      className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg z-40"
+      className="fixed bottom-6 right-6 h-12 w-12 lg:h-14 lg:w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg z-40"
       size="icon"
     >
-      <MessageSquare className="h-6 w-6 text-white" />
+      <MessageSquare className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
     </Button>
   );
 };

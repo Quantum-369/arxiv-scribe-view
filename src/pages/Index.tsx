@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -132,7 +133,6 @@ const Index = () => {
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
-    // auto-search if search query present
     if (searchQuery) {
       handleSearch(searchQuery);
     }
@@ -149,16 +149,16 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
         {/* Main Content */}
-        <div className={`flex-1 flex flex-col ${selectedPaper ? "w-1/2" : "w-full"}`}>
+        <div className={`flex-1 flex flex-col ${selectedPaper ? "lg:w-1/2" : "w-full"}`}>
           {/* Search Section */}
-          <div className="bg-white border-b border-gray-200 p-6">
+          <div className="bg-white border-b border-gray-200 p-4 lg:p-6">
             <div className="max-w-4xl mx-auto">
               <div className="flex flex-col space-y-4">
                 <div className="text-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
-                  <p className="text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
+                  <p className="text-sm lg:text-base text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
                 </div>
                 <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
                 <SearchBar
@@ -171,10 +171,10 @@ const Index = () => {
             </div>
           </div>
           {/* Results Section */}
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-4 lg:p-6">
             <div className="max-w-4xl mx-auto">
               <div className="mb-4">
-                <p className="text-gray-600">
+                <p className="text-sm lg:text-base text-gray-600">
                   {loading ? "Searching..." : `${papers.length} papers found`}
                   {geminiApiKey && " (AI-enhanced search enabled)"}
                 </p>
@@ -187,9 +187,9 @@ const Index = () => {
             </div>
           </div>
         </div>
-        {/* Paper Viewer */}
+        {/* Paper Viewer - Mobile: Full screen overlay, Desktop: Side panel */}
         {selectedPaper && (
-          <div className="w-1/2 border-l border-gray-200">
+          <div className="fixed inset-0 lg:relative lg:w-1/2 lg:border-l border-gray-200 z-40 lg:z-auto">
             <PaperViewer
               paper={selectedPaper}
               onClose={handleClosePaper}
@@ -197,8 +197,8 @@ const Index = () => {
           </div>
         )}
       </div>
-      {/* Floating Chat Bubble only when a paper is selected */}
-      {selectedPaper && <FloatingChatBubble paperTitle={selectedPaper.title} />}
+      {/* Floating Chat Bubble */}
+      {selectedPaper && <FloatingChatBubble paperTitle={selectedPaper.title} geminiApiKey={geminiApiKey} />}
     </div>
   );
 };
