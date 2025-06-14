@@ -1,5 +1,4 @@
-
-import pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist";
 // Remove the faulty worker import and use a static asset instead.
 
 /**
