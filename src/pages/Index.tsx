@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -79,13 +80,19 @@ const Index = () => {
     setFilters(newFilters);
 
     try {
+      // If searchTerms only include non-informative noise, don't send them, let default "all"
+      let searchTerms =
+        !parsedQuery.searchTerms || parsedQuery.searchTerms.length === 0
+          ? undefined
+          : parsedQuery.searchTerms;
+
       const results = await fetchArxivPapers({
-        searchTerms: parsedQuery.searchTerms,
+        searchTerms,
         category: parsedQuery.category,
         year: parsedQuery.dateFilter,
         sortBy: parsedQuery.sortBy,
         maxResults: 16,
-        // You can use author filtering by adding in buildArxivQuery if you want.
+        // author: can be added as a filter, if needed
       });
       setPapers(results);
     } catch (e) {

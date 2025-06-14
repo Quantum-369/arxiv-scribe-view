@@ -65,15 +65,35 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
   }
 
   // Extract search terms (remove common words and parsed terms)
-  const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'around', 'today', 'yesterday', 'recent', 'latest', 'newest', 'published', 'papers', 'paper', 'most', 'cited', 'popular', 'this', 'week', 'month', 'year'];
-  
-  const words = query.toLowerCase().split(/\s+/).filter(word => 
-    word.length > 2 && 
-    !commonWords.includes(word) &&
-    !Object.keys(categoryMappings).some(keyword => keyword.includes(word) || word.includes(keyword))
-  );
-  
+  const commonWords = [
+    'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into',
+    'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'around',
+    'today', 'yesterday', 'recent', 'latest', 'newest', 'published', 'papers', 'paper', 'most', 'cited', 'popular',
+    'this', 'week', 'month', 'year', "today's"
+  ];
+
+  // Remove category keywords too
+  const categoryKeywords = Object.keys(categoryMappings);
+
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(word =>
+      word.length > 2 &&
+      !commonWords.includes(word) &&
+      !categoryKeywords.some(keyword => keyword.includes(word) || word.includes(keyword))
+    );
+
+  // Only include words which are not just noise
   result.searchTerms = words;
+
+  // If searchTerms only includes noise like "weeks", "published", etc, set it to [].
+  if (
+    result.searchTerms.length === 1 &&
+    ['week', 'weeks', 'month', 'year', 'today', 'yesterday', "today's", 'papers', 'paper'].includes(result.searchTerms[0])
+  ) {
+    result.searchTerms = [];
+  }
 
   return result;
 };
