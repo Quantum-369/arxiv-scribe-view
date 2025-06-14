@@ -14,7 +14,13 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     // Set worker source for PDF.js
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
     
-    const response = await fetch(pdfUrl);
+    // Use CORS proxy to bypass CORS restrictions
+    const corsProxyUrl = 'https://api.allorigins.win/raw?url=';
+    const proxiedUrl = corsProxyUrl + encodeURIComponent(pdfUrl);
+    
+    console.log('Using CORS proxy:', proxiedUrl);
+    
+    const response = await fetch(proxiedUrl);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status}`);
