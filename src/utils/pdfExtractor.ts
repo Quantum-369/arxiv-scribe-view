@@ -6,10 +6,14 @@ interface PdfExtractionResult {
 
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
-    // Import pdf-parse dynamically to avoid issues with SSR
-    const pdfParse = (await import('pdf-parse')).default;
-    
     console.log('Fetching PDF from:', pdfUrl);
+    
+    // Import pdfjs-dist dynamically
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Set worker source for PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    
     const response = await fetch(pdfUrl);
     
     if (!response.ok) {
@@ -17,13 +21,26 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
     
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
     
     console.log('Parsing PDF content...');
-    const data = await pdfParse(buffer);
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     
-    console.log('PDF text extraction complete, length:', data.text.length);
-    return { text: data.text };
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    console.log('PDF text extraction complete, length:', fullText.length);
+    return { text: fullText.trim() };
   } catch (error) {
     console.error('Error extracting PDF text:', error);
     return { 
