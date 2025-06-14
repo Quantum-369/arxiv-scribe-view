@@ -14,7 +14,7 @@ interface SearchFiltersProps {
 const SearchFilters = ({ onFiltersChange }: SearchFiltersProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState({
-    category: '',
+    category: 'all',
     year: '',
     author: '',
     sortBy: 'relevance'
@@ -52,7 +52,7 @@ const SearchFilters = ({ onFiltersChange }: SearchFiltersProps) => {
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat.toLowerCase().replace(' ', '-')}>
                     {cat}
