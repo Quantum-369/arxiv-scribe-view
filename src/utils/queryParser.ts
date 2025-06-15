@@ -1,3 +1,4 @@
+
 export interface ParsedQuery {
   searchTerms: string[];
   category?: string;
@@ -23,9 +24,6 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
     result.dateFilter = yearMatch[1];
   }
 
-  // Remove category detection completely - it's too restrictive
-  // Let the search be broad across all categories
-
   // Sort parsing
   if (lowerQuery.includes('most cited') || lowerQuery.includes('popular')) {
     result.sortBy = 'citations';
@@ -35,42 +33,51 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
     result.sortBy = 'relevance';
   }
 
-  // Much more permissive search term extraction
-  const stopWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'papers', 'paper', 'that', 'how', 'can', 'any'];
+  // Create very broad search terms
+  const stopWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'that', 'how', 'can', 'any', 'papers', 'paper'];
   
-  const words = query
+  let words = query
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .filter(word => 
       word.length > 2 && 
       !stopWords.includes(word)
     );
 
-  // Keep more search terms and add synonyms for key concepts
-  result.searchTerms = words.slice(0, 8); // Increased from 5 to 8
-
-  // Add synonyms for common concepts
+  // Enhanced synonym mapping for better coverage
   const synonymMap: { [key: string]: string[] } = {
-    'ai': ['artificial intelligence', 'machine learning', 'ML'],
-    'artificial': ['AI', 'machine learning'],
-    'intelligence': ['AI', 'artificial'],
-    'economy': ['economic', 'economics', 'financial'],
-    'economic': ['economy', 'economics', 'financial'],
-    'impact': ['effect', 'influence', 'consequence'],
-    'predict': ['prediction', 'forecast', 'anticipate'],
-    'global': ['worldwide', 'international', 'world']
+    'ai': ['artificial intelligence', 'machine learning', 'ML', 'deep learning', 'neural'],
+    'artificial': ['AI', 'machine learning', 'intelligent'],
+    'intelligence': ['AI', 'artificial', 'smart', 'cognitive'],
+    'economy': ['economic', 'economics', 'financial', 'finance', 'market', 'business'],
+    'economic': ['economy', 'economics', 'financial', 'finance', 'market'],
+    'impact': ['effect', 'influence', 'consequence', 'affect', 'outcome'],
+    'predict': ['prediction', 'forecast', 'anticipate', 'model', 'estimate'],
+    'global': ['worldwide', 'international', 'world', 'universal'],
+    'learning': ['ML', 'machine learning', 'neural', 'training'],
+    'machine': ['ML', 'artificial', 'automated', 'computational']
   };
 
-  // Add synonyms to search terms
-  const expandedTerms = [...result.searchTerms];
-  result.searchTerms.forEach(term => {
-    if (synonymMap[term]) {
-      expandedTerms.push(...synonymMap[term]);
+  // Build comprehensive search terms
+  const expandedTerms = new Set(words);
+  
+  // Add synonyms for each word
+  words.forEach(word => {
+    if (synonymMap[word]) {
+      synonymMap[word].forEach(synonym => expandedTerms.add(synonym));
     }
   });
 
-  result.searchTerms = [...new Set(expandedTerms)].slice(0, 10); // Remove duplicates and limit
+  // Add common combinations for better results
+  if (lowerQuery.includes('ai') && lowerQuery.includes('econom')) {
+    expandedTerms.add('computational economics');
+    expandedTerms.add('algorithmic trading');
+    expandedTerms.add('fintech');
+  }
 
+  result.searchTerms = Array.from(expandedTerms).slice(0, 12); // Increased limit
+
+  console.log('Parsed query:', result);
   return result;
 };
