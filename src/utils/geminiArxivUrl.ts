@@ -1,3 +1,4 @@
+
 /**
  * Utility for generating arXiv search URLs using Google Gemini LLM.
  */
@@ -71,8 +72,9 @@ ONLY return the complete arXiv API URL, nothing else.
     
     console.log("Gemini response text:", text);
     
-    // Fixed URL extraction - look for arXiv URLs specifically and handle quotes properly
-    const arxivUrlMatch = text.match(/https?:\/\/export\.arxiv\.org\/api\/query\?[^\s\n\r"']*/);
+    // Enhanced URL extraction - capture the complete arXiv URL including all parameters
+    // Look for the arXiv URL pattern and capture everything until whitespace or end of line
+    const arxivUrlMatch = text.match(/https?:\/\/export\.arxiv\.org\/api\/query\?[^\s\n\r]+/);
     const generatedUrl = arxivUrlMatch ? arxivUrlMatch[0] : null;
     
     console.log("Extracted URL:", generatedUrl);
