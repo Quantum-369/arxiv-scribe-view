@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, MessageSquare, AlertCircle } from "lucide-react";
+import { Send, MessageSquare, AlertCircle, Sparkles } from "lucide-react";
 import { Message, ChatSidebarProps } from "@/types/chat";
 import { getChatResponse } from "@/utils/geminiApi";
 import ChatStatusIndicators from "./ChatStatusIndicators";
@@ -16,16 +16,16 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
       id: '1',
       type: 'assistant',
       content: paper 
-        ? `Hello! I'm here to help you understand "${paper.title}" by ${paper.authors.join(", ")}. ${
+        ? `Welcome! I'm your AI research assistant, ready to help you understand **"${paper.title}"** by ${paper.authors.join(", ")}. ${
             !geminiApiKey 
-              ? 'To enable AI-powered chat features, please add your Gemini API key in the search section above.' 
+              ? '\n\n🔑 **API Key Required**: Please add your Gemini API key in the search section to unlock AI-powered analysis.' 
               : paper.fullText 
-                ? 'I have access to the complete paper content and can answer detailed questions about the methodology, findings, analysis, and any specific sections.' 
-                : 'I have access to the paper\'s metadata and abstract, and can help you understand the research.'
-          } ${geminiApiKey ? `You can ask me about methodology, findings, implications, or anything else you'd like to know about this ${paper.category} paper published on ${paper.publishedDate}.` : ''}`
+                ? '\n\n✨ **Full Access**: I have the complete paper content and can answer detailed questions about methodology, findings, analysis, and specific sections.' 
+                : '\n\n📄 **Metadata Access**: I can help you understand the research based on the abstract and paper details.'
+          } ${geminiApiKey ? `\n\n💡 **What would you like to explore?**\n• Methodology and approach\n• Key findings and results\n• Implications and significance\n• Technical details\n• Related research` : ''}`.trim()
         : !geminiApiKey 
-          ? "Hello! To start chatting about papers and research, please add your Gemini API key in the search section above."
-          : "Hello! Select a paper to start chatting about it, or ask me general questions about research!",
+          ? "👋 **Welcome to arXiv Scholar Chat!**\n\nI'm your AI research assistant. To start our conversation:\n\n🔑 Add your Gemini API key in the search section\n📄 Select a paper to analyze\n💬 Ask me anything about research!"
+          : "👋 **Hello! I'm your AI research assistant.**\n\nSelect a paper to start our deep-dive analysis, or ask me general questions about research, methodologies, and academic concepts!",
       timestamp: new Date()
     }
   ]);
@@ -62,7 +62,7 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: "Sorry, I encountered an error. Please try again.",
+        content: "I apologize, but I encountered an error processing your request. Please check your API key and try again, or rephrase your question.",
         timestamp: new Date()
       };
       
@@ -80,38 +80,49 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header - only show in full sidebar mode */}
+    <div className="flex flex-col h-full bg-gradient-to-b from-white to-slate-50">
+      {/* Header - enhanced with gradient and better typography */}
       {!paper && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Research Assistant</h3>
+        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-academic-blue/5 to-academic-indigo/5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-academic-blue/10">
+              <MessageSquare className="h-5 w-5 text-academic-blue" />
+            </div>
+            <div>
+              <h3 className="font-serif font-semibold text-slate-900 text-lg">Research Assistant</h3>
+              <p className="text-sm text-slate-600">AI-powered paper analysis</p>
+            </div>
             {!geminiApiKey && (
-              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <div className="ml-auto">
+                <div className="p-1.5 rounded-full bg-amber-100">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                </div>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* API Key Warning */}
+      {/* API Key Warning - redesigned */}
       {!geminiApiKey && (
-        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-800">API Key Required</p>
-              <p className="text-xs text-amber-700 mt-1">
-                Add your Gemini API key in the search section to enable AI chat features.
+        <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-1.5 rounded-full bg-amber-100 mt-0.5">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900">API Key Required</p>
+              <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                Add your Gemini API key in the search section to unlock AI-powered research assistance and paper analysis.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Messages */}
+      {/* Messages - enhanced scroll area */}
       <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+        <div className="space-y-6">
           <ChatStatusIndicators paper={paper} />
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
@@ -120,32 +131,44 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
         </div>
       </ScrollArea>
 
-      {/* Input */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={
-              !geminiApiKey 
-                ? "Add API key to enable chat..." 
-                : paper 
-                  ? "Ask about this paper..." 
-                  : "Ask me anything..."
-            }
-            className="flex-1 text-xs lg:text-sm"
-            disabled={isLoading || !geminiApiKey}
-          />
+      {/* Input - redesigned with better visual hierarchy */}
+      <div className="p-4 border-t border-slate-200 bg-white">
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={
+                !geminiApiKey 
+                  ? "Add API key to start chatting..." 
+                  : paper 
+                    ? "Ask about methodology, findings, implications..." 
+                    : "Ask me about research, papers, or methodology..."
+              }
+              className="flex-1 text-sm border-slate-300 focus:border-academic-blue focus:ring-academic-blue/20 placeholder:text-slate-500 pr-10"
+              disabled={isLoading || !geminiApiKey}
+            />
+            {geminiApiKey && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Sparkles className="h-4 w-4 text-slate-400" />
+              </div>
+            )}
+          </div>
           <Button 
             onClick={handleSendMessage}
             disabled={isLoading || !inputValue.trim() || !geminiApiKey}
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-academic-blue hover:bg-academic-indigo text-white shadow-md hover:shadow-lg transition-all duration-200 px-4"
           >
-            <Send className="h-3 w-3 lg:h-4 lg:w-4" />
+            <Send className="h-4 w-4" />
           </Button>
         </div>
+        {geminiApiKey && (
+          <p className="text-xs text-slate-500 mt-2 text-center">
+            Press Enter to send • Shift+Enter for new line
+          </p>
+        )}
       </div>
     </div>
   );
