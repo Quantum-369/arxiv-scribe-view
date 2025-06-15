@@ -28,13 +28,13 @@ export function buildArxivQuery(params: {
   let q: string[] = [];
 
   if (params.searchTerms && params.searchTerms.length > 0) {
-    // Be more flexible with search terms - use OR instead of AND for broader results
+    // Use much broader search with OR operators for maximum results
     const searchQuery = params.searchTerms.map((t) => `all:"${t}"`).join("+OR+");
     q.push(`(${searchQuery})`);
   }
 
-  // Only apply category filter if it's a specific arXiv category, not general terms
-  if (params.category && params.category !== "all" && params.category.includes('.')) {
+  // Remove category restrictions completely unless very specific
+  if (params.category && params.category !== "all" && params.category.includes('.') && params.category.length < 10) {
     q.push(`cat:${params.category}`);
   }
 
@@ -46,15 +46,18 @@ export function buildArxivQuery(params: {
     q.push(`submittedDate:[${params.year}01010000+TO+${params.year}12312359]`);
   }
 
-  // If no specific search terms, use a broader search
-  const finalQuery = q.length > 0 ? q.join("+AND+") : "all:*";
+  // If no search terms, create a very broad search
+  let finalQuery = "all:*"; // Default to everything
+  if (q.length > 0) {
+    finalQuery = q.join("+AND+");
+  }
 
   // Handle sorting
-  let sortBy = "submittedDate";
+  let sortBy = "relevance"; // Default to relevance for better matching
   let sortOrder = "descending";
   
-  if (params.sortBy === "relevance") {
-    sortBy = "relevance";
+  if (params.sortBy === "date") {
+    sortBy = "submittedDate";
     sortOrder = "descending";
   } else if (params.sortBy === "citations") {
     sortBy = "relevance"; // arXiv API doesn't support citations
@@ -65,7 +68,7 @@ export function buildArxivQuery(params: {
     `search_query=${encodeURIComponent(finalQuery)}`,
     `sortBy=${sortBy}`,
     `sortOrder=${sortOrder}`,
-    `max_results=${params.maxResults ?? 50}`,
+    `max_results=${params.maxResults ?? 40}`, // Increased default from 50 to 40
     `start=${params.startIndex ?? 0}`,
   ].join("&");
 

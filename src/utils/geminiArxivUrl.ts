@@ -8,26 +8,32 @@ export async function getArxivUrlFromQuery(
 ): Promise<string | null> {
   const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
   const systemPrompt = `
-You are an expert at constructing arXiv API search URLs that return many relevant results.
+You are an expert at constructing arXiv API search URLs that return MANY relevant results. Your goal is to NEVER return zero results.
 
-Convert user queries into arXiv API URLs. Be VERY GENEROUS with search terms to avoid zero results.
+CRITICAL RULES:
+1. Be EXTREMELY GENEROUS with search terms - use broad keywords
+2. ALWAYS use OR operators between related terms
+3. Use "all:" prefix for broad searches across all fields
+4. Start with 30-50 results minimum (max_results=30 or higher)
+5. NEVER be too specific - better to have extra results than zero results
+6. For interdisciplinary topics, search multiple related areas
 
-Key rules:
-- Use broad search terms with OR operators for more results
-- For interdisciplinary topics like "Economics and AI", search across multiple fields
-- Don't over-constrain with category filters unless very specific
-- Use "all:" prefix for broad searches
-- Always aim for 20-50 results minimum
+EXAMPLES OF GOOD URLS:
+- "AI economy impact" → https://export.arxiv.org/api/query?search_query=all:"artificial+intelligence"+OR+all:"AI"+OR+all:"economy"+OR+all:"economic"+OR+all:"impact"+OR+all:"prediction"&sortBy=relevance&max_results=40
+- "machine learning papers" → https://export.arxiv.org/api/query?search_query=all:"machine+learning"+OR+all:"ML"+OR+all:"neural"+OR+all:"deep+learning"&sortBy=relevance&max_results=40
+- "quantum computing" → https://export.arxiv.org/api/query?search_query=all:"quantum"+OR+all:"computing"+OR+all:"quantum+computing"&sortBy=relevance&max_results=40
 
-Examples:
-- "Economics and AI impact" → https://export.arxiv.org/api/query?search_query=all:"economics"+OR+all:"economic"+OR+all:"AI"+OR+all:"artificial+intelligence"&sortBy=relevance&max_results=30
-- "machine learning papers" → https://export.arxiv.org/api/query?search_query=all:"machine+learning"+OR+all:"ML"&sortBy=relevance&max_results=30
-- "recent quantum computing" → https://export.arxiv.org/api/query?search_query=all:"quantum+computing"+OR+all:"quantum"&sortBy=submittedDate&max_results=30
+KEY STRATEGY:
+- Break the user query into individual concepts
+- Add synonyms and related terms with OR
+- Use broad matching with "all:" prefix
+- Set high max_results (30-50)
+- Prioritize recall over precision
 
-ONLY return the URL, nothing else.
+ONLY return the complete arXiv API URL, nothing else.
 `;
 
-  const prompt = `${systemPrompt}\nUser Query: "${userQuery}"`;
+  const prompt = `${systemPrompt}\n\nUser Query: "${userQuery}"\n\nGenerate a broad arXiv search URL that will return many relevant results:`;
   const body = {
     contents: [
       {
@@ -36,7 +42,8 @@ ONLY return the URL, nothing else.
       },
     ],
     generationConfig: {
-      responseMimeType: "text/plain"
+      responseMimeType: "text/plain",
+      temperature: 0.3
     }
   };
 

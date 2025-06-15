@@ -23,14 +23,8 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
     result.dateFilter = yearMatch[1];
   }
 
-  // Much simpler category detection - only for very specific terms
-  if (lowerQuery.includes('computer science') || lowerQuery.includes('cs.')) {
-    result.category = 'cs';
-  } else if (lowerQuery.includes('physics') && !lowerQuery.includes('bio')) {
-    result.category = 'physics';
-  } else if (lowerQuery.includes('mathematics') || lowerQuery.includes('math.')) {
-    result.category = 'math';
-  }
+  // Remove category detection completely - it's too restrictive
+  // Let the search be broad across all categories
 
   // Sort parsing
   if (lowerQuery.includes('most cited') || lowerQuery.includes('popular')) {
@@ -42,7 +36,7 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
   }
 
   // Much more permissive search term extraction
-  const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'papers', 'paper'];
+  const stopWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'papers', 'paper', 'that', 'how', 'can', 'any'];
   
   const words = query
     .toLowerCase()
@@ -50,11 +44,33 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
     .split(/\s+/)
     .filter(word => 
       word.length > 2 && 
-      !commonWords.includes(word)
+      !stopWords.includes(word)
     );
 
-  // Keep most words as search terms - be much less aggressive in filtering
-  result.searchTerms = words.slice(0, 5); // Limit to 5 terms max for better results
+  // Keep more search terms and add synonyms for key concepts
+  result.searchTerms = words.slice(0, 8); // Increased from 5 to 8
+
+  // Add synonyms for common concepts
+  const synonymMap: { [key: string]: string[] } = {
+    'ai': ['artificial intelligence', 'machine learning', 'ML'],
+    'artificial': ['AI', 'machine learning'],
+    'intelligence': ['AI', 'artificial'],
+    'economy': ['economic', 'economics', 'financial'],
+    'economic': ['economy', 'economics', 'financial'],
+    'impact': ['effect', 'influence', 'consequence'],
+    'predict': ['prediction', 'forecast', 'anticipate'],
+    'global': ['worldwide', 'international', 'world']
+  };
+
+  // Add synonyms to search terms
+  const expandedTerms = [...result.searchTerms];
+  result.searchTerms.forEach(term => {
+    if (synonymMap[term]) {
+      expandedTerms.push(...synonymMap[term]);
+    }
+  });
+
+  result.searchTerms = [...new Set(expandedTerms)].slice(0, 10); // Remove duplicates and limit
 
   return result;
 };
