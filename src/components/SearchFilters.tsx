@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'all', label: 'All categories' },
     
     // Physics
-    { value: 'physics', label: '--- PHYSICS ---', disabled: true },
+    { value: 'physics-header', label: '--- PHYSICS ---', disabled: true },
     { value: 'astro-ph', label: 'Astrophysics (General)' },
     { value: 'astro-ph.CO', label: 'Astrophysics - Cosmology and Nongalactic' },
     { value: 'astro-ph.EP', label: 'Astrophysics - Earth and Planetary' },
@@ -62,7 +61,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     
     { value: 'nucl-ex', label: 'Nuclear Experiment' },
     { value: 'nucl-th', label: 'Nuclear Theory' },
-    { value: 'physics', label: 'Physics (General)' },
+    { value: 'physics.general', label: 'Physics (General)' },
     { value: 'physics.acc-ph', label: 'Physics - Accelerator Physics' },
     { value: 'physics.app-ph', label: 'Physics - Applied Physics' },
     { value: 'physics.ao-ph', label: 'Physics - Atmospheric and Oceanic Physics' },
@@ -87,7 +86,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'quant-ph', label: 'Quantum Physics' },
     
     // Mathematics
-    { value: 'math', label: '--- MATHEMATICS ---', disabled: true },
+    { value: 'math-header', label: '--- MATHEMATICS ---', disabled: true },
     { value: 'math.AG', label: 'Mathematics - Algebraic Geometry' },
     { value: 'math.AT', label: 'Mathematics - Algebraic Topology' },
     { value: 'math.AP', label: 'Mathematics - Analysis of PDEs' },
@@ -121,7 +120,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'math.SG', label: 'Mathematics - Symplectic Geometry' },
     
     // Computer Science
-    { value: 'cs', label: '--- COMPUTER SCIENCE ---', disabled: true },
+    { value: 'cs-header', label: '--- COMPUTER SCIENCE ---', disabled: true },
     { value: 'cs.AI', label: 'Computer Science - Artificial Intelligence' },
     { value: 'cs.CL', label: 'Computer Science - Computation and Language' },
     { value: 'cs.CC', label: 'Computer Science - Computational Complexity' },
@@ -164,7 +163,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'cs.SY', label: 'Computer Science - Systems and Control' },
     
     // Biology
-    { value: 'q-bio', label: '--- QUANTITATIVE BIOLOGY ---', disabled: true },
+    { value: 'q-bio-header', label: '--- QUANTITATIVE BIOLOGY ---', disabled: true },
     { value: 'q-bio.BM', label: 'Quantitative Biology - Biomolecules' },
     { value: 'q-bio.CB', label: 'Quantitative Biology - Cell Behavior' },
     { value: 'q-bio.GN', label: 'Quantitative Biology - Genomics' },
@@ -177,7 +176,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'q-bio.TO', label: 'Quantitative Biology - Tissues and Organs' },
     
     // Finance
-    { value: 'q-fin', label: '--- QUANTITATIVE FINANCE ---', disabled: true },
+    { value: 'q-fin-header', label: '--- QUANTITATIVE FINANCE ---', disabled: true },
     { value: 'q-fin.CP', label: 'Quantitative Finance - Computational Finance' },
     { value: 'q-fin.EC', label: 'Quantitative Finance - Economics' },
     { value: 'q-fin.GN', label: 'Quantitative Finance - General Finance' },
@@ -189,7 +188,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'q-fin.TR', label: 'Quantitative Finance - Trading and Market Microstructure' },
     
     // Statistics
-    { value: 'stat', label: '--- STATISTICS ---', disabled: true },
+    { value: 'stat-header', label: '--- STATISTICS ---', disabled: true },
     { value: 'stat.AP', label: 'Statistics - Applications' },
     { value: 'stat.CO', label: 'Statistics - Computation' },
     { value: 'stat.ML', label: 'Statistics - Machine Learning' },
@@ -198,14 +197,14 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     { value: 'stat.TH', label: 'Statistics - Statistics Theory' },
     
     // Engineering
-    { value: 'eess', label: '--- ENGINEERING ---', disabled: true },
+    { value: 'eess-header', label: '--- ENGINEERING ---', disabled: true },
     { value: 'eess.AS', label: 'Engineering - Audio and Speech Processing' },
     { value: 'eess.IV', label: 'Engineering - Image and Video Processing' },
     { value: 'eess.SP', label: 'Engineering - Signal Processing' },
     { value: 'eess.SY', label: 'Engineering - Systems and Control' },
     
     // Economics
-    { value: 'econ', label: '--- ECONOMICS ---', disabled: true },
+    { value: 'econ-header', label: '--- ECONOMICS ---', disabled: true },
     { value: 'econ.EM', label: 'Economics - Econometrics' },
     { value: 'econ.GN', label: 'Economics - General Economics' },
     { value: 'econ.TH', label: 'Economics - Theoretical Economics' },
@@ -244,7 +243,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
               <SelectTrigger>
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
-              <SelectContent className="max-h-96 overflow-y-auto">
+              <SelectContent className="max-h-96 overflow-y-auto z-50" side="bottom" align="start">
                 {categories.map((cat) => (
                   <SelectItem 
                     key={cat.value} 
