@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ const ApiKeyInput = ({ onApiKeyChange }: ApiKeyInputProps) => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 lg:p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <Key className="h-4 w-4 text-blue-600" />
-              <Label className="text-blue-800 font-medium text-sm lg:text-base">Gemini API Key (Optional)</Label>
+              <Label className="text-blue-800 font-medium text-sm lg:text-base">Gemini API Key</Label>
             </div>
             <p className="text-xs lg:text-sm text-blue-700 mb-3">
               Add your Gemini API key for enhanced AI-powered search and chat. Get one from{" "}
@@ -116,7 +117,7 @@ const ApiKeyInput = ({ onApiKeyChange }: ApiKeyInputProps) => {
           <div className="flex items-center gap-2 mb-2 cursor-pointer">
             <Key className="h-4 w-4 text-blue-600" />
             <Label className="text-blue-800 font-medium text-sm lg:text-base flex-1">
-              Gemini API Key (Optional)
+              Gemini API Key
             </Label>
             {isExpanded ? (
               <ChevronUp className="h-4 w-4 text-blue-600" />
