@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
-import SearchBar from "@/components/SearchBar";
+import EnhancedSearchBar from "@/components/EnhancedSearchBar";
 import SearchFilters from "@/components/SearchFilters";
 import PapersList from "@/components/PapersList";
 import FloatingChatBubble from "@/components/FloatingChatBubble";
@@ -18,6 +18,7 @@ import {
   clearSearchState, 
   isReturningFromPaperView 
 } from "@/utils/searchStateManager";
+import { Sparkles, BookOpen, TrendingUp } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -334,38 +335,59 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       <Header />
       
-      {/* Search Section - More compact when results are shown */}
-      <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
-        hasSearched ? "py-3 shadow-sm" : "py-8"
+      {/* Enhanced Search Section */}
+      <div className={`bg-white border-b border-gray-100 transition-all duration-500 ${
+        hasSearched ? "py-4 shadow-md" : "py-12"
       }`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-6">
             {!hasSearched && (
-              <div className="text-center mb-6">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-                  arXiv Scholar
-                </h1>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">
-                  Search Academic Papers
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <BookOpen className="h-8 w-8 text-academic-blue" />
+                  <h1 className="text-4xl font-serif font-bold text-gray-900">
+                    arXiv Scholar
+                  </h1>
+                  <Sparkles className="h-6 w-6 text-academic-indigo" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4">
+                  AI-Powered Academic Research
                 </h2>
-                <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
-                  Search through millions of academic papers with AI-enhanced search capabilities. 
-                  Try: "machine learning transformers" or "quantum computing 2024"
+                <p className="text-base text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Search through millions of academic papers with intelligent search capabilities. 
+                  Our AI understands natural language queries and finds the most relevant research.
                 </p>
+                
+                <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Latest Papers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>AI-Enhanced</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    <span>Full Papers</span>
+                  </div>
+                </div>
               </div>
             )}
             
             <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
             
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="flex-1 w-full">
-                <SearchBar
+                <EnhancedSearchBar
                   onSearch={handleNewSearch}
                   value={searchQuery}
                   onChange={setSearchQuery}
+                  isLoading={loading}
+                  hasAI={!!geminiApiKey}
                 />
               </div>
               
@@ -374,11 +396,11 @@ const Index = () => {
                   <div className="flex items-center gap-2">
                     {loading ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-academic-blue border-t-transparent rounded-full animate-spin"></div>
                         <span>Searching...</span>
                       </div>
                     ) : (
-                      <span className="font-medium">
+                      <span className="font-semibold text-gray-900">
                         {pagination.totalResults > 0 ? 
                           `${pagination.totalResults.toLocaleString()} papers` : 
                           `${papers.length} papers`
@@ -386,9 +408,10 @@ const Index = () => {
                       </span>
                     )}
                     {geminiApiKey && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                      <div className="px-2 py-1 bg-gradient-to-r from-academic-blue to-academic-indigo text-white rounded-full text-xs font-medium flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
                         AI
-                      </span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -406,16 +429,18 @@ const Index = () => {
       
       {/* Results Section */}
       <div className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {!hasSearched ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-gradient-to-br from-academic-blue to-academic-indigo rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <BookOpen className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to search</h3>
-              <p className="text-gray-600">Enter your search query above to find academic papers</p>
+              <h3 className="text-2xl font-serif font-semibold text-gray-900 mb-3">
+                Ready to explore
+              </h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Enter your search query above to discover academic papers across all disciplines
+              </p>
             </div>
           ) : (
             <PapersList

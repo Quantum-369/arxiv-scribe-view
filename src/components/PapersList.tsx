@@ -1,5 +1,6 @@
 
-import PaperCard from "./PaperCard";
+import EnhancedPaperCard from "./EnhancedPaperCard";
+import PaperCardSkeleton from "./PaperCardSkeleton";
 import PaginationControls from "./PaginationControls";
 
 interface Paper {
@@ -41,11 +42,9 @@ const PapersList = ({
 }: PapersListProps) => {
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-200 rounded-lg h-48"></div>
-          </div>
+          <PaperCardSkeleton key={i} />
         ))}
       </div>
     );
@@ -53,22 +52,30 @@ const PapersList = ({
 
   if (papers.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No papers found</h3>
-        <p className="text-gray-600">Try adjusting your search terms or filters</p>
+      <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-serif font-semibold text-gray-900 mb-2">No papers found</h3>
+        <p className="text-gray-600 max-w-md mx-auto">
+          Try adjusting your search terms or filters. Consider using broader keywords or checking different categories.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
-        {papers.map((paper) => (
-          <PaperCard 
-            key={paper.id} 
-            paper={paper} 
-            onViewPaper={onViewPaper}
-          />
+    <div className="space-y-6">
+      <div className="space-y-6">
+        {papers.map((paper, index) => (
+          <div key={paper.id} style={{ animationDelay: `${index * 50}ms` }}>
+            <EnhancedPaperCard 
+              paper={paper} 
+              onViewPaper={onViewPaper}
+            />
+          </div>
         ))}
       </div>
       
