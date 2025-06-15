@@ -1,3 +1,4 @@
+
 import * as pdfjsLib from "pdfjs-dist";
 
 interface PdfExtractionResult {
@@ -32,8 +33,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Properly disable worker - use empty string to disable
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    // Disable worker completely - set to false to run on main thread
+    pdfjsLib.GlobalWorkerOptions.workerSrc = false as any;
     console.log("PDF.js worker disabled - running on main thread");
 
     console.log('Fetching PDF from:', pdfUrl);
@@ -103,26 +104,26 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
 
     console.log('Creating PDF document...');
 
-    // Use minimal config without worker
+    // Use configuration that forces main thread execution
     const documentConfig = {
       data: arrayBuffer,
       useWorkerFetch: false,
-      disableWorker: true,
-      isEvalSupported: false
+      isEvalSupported: false,
+      useSystemFonts: true
     };
 
     const loadingTask = pdfjsLib.getDocument(documentConfig);
 
     console.log('Loading task created, waiting for PDF...');
 
-    // Reduced timeout to 15 seconds since we're running on main thread
+    // Reduced timeout to 10 seconds since we're running on main thread
     const parsePromise = loadingTask.promise;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        console.error('PDF parsing timed out after 15 seconds');
+        console.error('PDF parsing timed out after 10 seconds');
         loadingTask.destroy();
         reject(new Error('PDF parsing timeout'));
-      }, 15000);
+      }, 10000);
     });
 
     const pdf = await Promise.race([parsePromise, timeoutPromise]);
@@ -130,7 +131,7 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
 
     let fullText = '';
     // Process all pages for small documents, limit for large ones
-    const maxPages = Math.min(pdf.numPages, pdf.numPages <= 5 ? pdf.numPages : 5);
+    const maxPages = Math.min(pdf.numPages, pdf.numPages <= 3 ? pdf.numPages : 3);
 
     console.log(`Extracting text from ${maxPages} pages...`);
 
