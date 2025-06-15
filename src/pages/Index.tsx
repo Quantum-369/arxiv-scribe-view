@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import SearchFilters from "@/components/SearchFilters";
 import PapersList from "@/components/PapersList";
-import PaperViewer from "@/components/PaperViewer";
 import FloatingChatBubble from "@/components/FloatingChatBubble";
 import ApiKeyInput from "@/components/ApiKeyInput";
 import { parseNaturalLanguageQuery } from "@/utils/queryParser";
@@ -14,9 +14,9 @@ import { Paper } from "@/types/paper";
 import { usePagination } from "@/hooks/usePagination";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [papers, setPapers] = useState<ArxivPaper[]>([]);
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [loading, setLoading] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -29,7 +29,6 @@ const Index = () => {
 
   const pagination = usePagination({ resultsPerPage: 50 });
 
-  // Enhanced search with pagination support
   const handleSearch = async (query: string, pageOverride?: number) => {
     const targetPage = pageOverride ?? 1;
     if (targetPage === 1) {
@@ -202,133 +201,114 @@ const Index = () => {
       citations: paper.citations,
     };
     
-    setSelectedPaper(paperWithMetadata);
+    // Store in sessionStorage to pass to the paper view page
+    sessionStorage.setItem('currentPaper', JSON.stringify(paperWithMetadata));
+    sessionStorage.setItem('geminiApiKey', geminiApiKey);
     
-    // Simplified PDF text extraction
-    console.log('Starting simplified PDF text extraction for:', paper.title);
-    console.log('Using PDF URL:', paper.pdfUrl);
-    
-    try {
-      const { text, error } = await extractPdfText(paper.pdfUrl);
-      
-      setSelectedPaper(prev => prev ? {
-        ...prev,
-        fullText: text || undefined,
-        textExtractionError: error
-      } : null);
-      
-      if (text) {
-        console.log('PDF text extraction successful, length:', text.length);
-      } else if (error) {
-        console.log('PDF text extraction failed:', error);
-      }
-    } catch (error) {
-      console.error('Error during PDF text extraction:', error);
-      setSelectedPaper(prev => prev ? {
-        ...prev,
-        textExtractionError: 'Failed to extract PDF text'
-      } : null);
-    }
-  };
-
-  const handleClosePaper = () => {
-    setSelectedPaper(null);
+    // Navigate to paper view page
+    navigate('/paper');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
-        {/* Main Content */}
-        <div className={`flex-1 flex flex-col ${selectedPaper ? "lg:w-1/2" : "w-full"}`}>
-          {/* Search Section - Compact when results are shown */}
-          <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
-            hasSearched ? "p-2 lg:p-3" : "p-4 lg:p-6"
-          }`}>
-            <div className="max-w-4xl mx-auto">
-              <div className="flex flex-col space-y-3">
-                {!hasSearched && (
-                  <div className="text-center mb-4">
-                    <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
-                    <p className="text-sm lg:text-base text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
-                  </div>
-                )}
-                <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
-                <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-center">
-                  <SearchBar
-                    onSearch={(query) => handleSearch(query, 1)}
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                  />
-                  {hasSearched && (
-                    <div className="text-sm text-gray-600 whitespace-nowrap">
-                      {loading ? "Searching..." : pagination.totalResults > 0 ? 
-                        `${pagination.totalResults.toLocaleString()} papers` : 
-                        `${papers.length} papers`
-                      }
-                      {geminiApiKey && " (AI)"}
-                    </div>
-                  )}
-                </div>
-                {hasSearched && (
-                  <SearchFilters onFiltersChange={handleFiltersChange} />
-                )}
+      
+      {/* Search Section - More compact when results are shown */}
+      <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
+        hasSearched ? "py-3 shadow-sm" : "py-8"
+      }`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col space-y-4">
+            {!hasSearched && (
+              <div className="text-center mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                  arXiv Scholar
+                </h1>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">
+                  Search Academic Papers
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
+                  Search through millions of academic papers with AI-enhanced search capabilities. 
+                  Try: "machine learning transformers" or "quantum computing 2024"
+                </p>
               </div>
-            </div>
-          </div>
-          
-          {/* Results Section - More space when search is performed */}
-          <div className="flex-1 overflow-auto p-4 lg:p-6">
-            <div className="max-w-4xl mx-auto">
-              {!hasSearched && (
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to search</h3>
-                  <p className="text-gray-600">Enter your search query above to find academic papers</p>
-                </div>
-              )}
+            )}
+            
+            <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
+            
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+              <div className="flex-1 w-full">
+                <SearchBar
+                  onSearch={(query) => handleSearch(query, 1)}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
+              </div>
               
               {hasSearched && (
-                <>
-                  {!hasSearched && (
-                    <div className="mb-4">
-                      <p className="text-sm lg:text-base text-gray-600">
-                        {loading ? "Searching..." : pagination.totalResults > 0 ? 
-                          `${pagination.totalResults.toLocaleString()} papers found` : 
-                          `${papers.length} papers found`
+                <div className="flex items-center gap-4 text-sm text-gray-600 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Searching...</span>
+                      </div>
+                    ) : (
+                      <span className="font-medium">
+                        {pagination.totalResults > 0 ? 
+                          `${pagination.totalResults.toLocaleString()} papers` : 
+                          `${papers.length} papers`
                         }
-                        {geminiApiKey && " (AI-enhanced search enabled)"}
-                      </p>
-                    </div>
-                  )}
-                  <PapersList
-                    papers={papers}
-                    onViewPaper={handleViewPaper}
-                    loading={loading}
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    totalResults={pagination.totalResults}
-                    resultsPerPage={pagination.resultsPerPage}
-                    onPageChange={handlePageChange}
-                    hasNextPage={pagination.hasNextPage}
-                    hasPrevPage={pagination.hasPrevPage}
-                  />
-                </>
+                      </span>
+                    )}
+                    {geminiApiKey && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                        AI
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
+            
+            {hasSearched && (
+              <div className="w-full">
+                <SearchFilters onFiltersChange={handleFiltersChange} />
+              </div>
+            )}
           </div>
         </div>
-        {/* Paper Viewer - Mobile: Full screen overlay, Desktop: Side panel */}
-        {selectedPaper && (
-          <div className="fixed inset-0 lg:relative lg:w-1/2 lg:border-l border-gray-200 z-40 lg:z-auto">
-            <PaperViewer
-              paper={selectedPaper}
-              onClose={handleClosePaper}
-            />
-          </div>
-        )}
       </div>
-      {/* Floating Chat Bubble */}
-      {selectedPaper && <FloatingChatBubble paper={selectedPaper} geminiApiKey={geminiApiKey} />}
+      
+      {/* Results Section */}
+      <div className="flex-1">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {!hasSearched ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to search</h3>
+              <p className="text-gray-600">Enter your search query above to find academic papers</p>
+            </div>
+          ) : (
+            <PapersList
+              papers={papers}
+              onViewPaper={handleViewPaper}
+              loading={loading}
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalResults={pagination.totalResults}
+              resultsPerPage={pagination.resultsPerPage}
+              onPageChange={handlePageChange}
+              hasNextPage={pagination.hasNextPage}
+              hasPrevPage={pagination.hasPrevPage}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
