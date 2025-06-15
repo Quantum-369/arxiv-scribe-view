@@ -4,7 +4,7 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// Simple PDF download and storage
+// Simple PDF download and storage with chunked base64 conversion
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Starting PDF download for:', pdfUrl);
@@ -18,12 +18,22 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     const arrayBuffer = await response.arrayBuffer();
     console.log('PDF downloaded successfully, size:', arrayBuffer.byteLength, 'bytes');
 
+    // Convert to base64 in chunks to avoid call stack overflow
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const chunkSize = 8192; // Process 8KB at a time
+    let base64String = '';
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      const chunkString = String.fromCharCode.apply(null, Array.from(chunk));
+      base64String += btoa(chunkString);
+    }
+    
     // Store in localStorage
-    const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     localStorage.setItem('currentPdfData', base64String);
     localStorage.setItem('currentPdfUrl', pdfUrl);
     
-    console.log('PDF stored in localStorage');
+    console.log('PDF stored in localStorage successfully');
 
     // For now, return a success message with the PDF size
     return { 
