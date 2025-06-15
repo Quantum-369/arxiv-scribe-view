@@ -33,9 +33,9 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Correctly set the worker source for pdfjs
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-    console.log("PDF.js worker enabled - using /pdf.worker.min.js");
+    // Completely disable worker to avoid hanging issues
+    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+    console.log("PDF.js worker disabled - running on main thread");
 
     console.log('Fetching PDF from:', pdfUrl);
 
@@ -95,15 +95,6 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
       }
     }
 
-    // Confirm response is really a PDF!
-    const ctype = response.headers.get('content-type') || '';
-    if (!ctype.includes("pdf")) {
-      const textPreview = await response.clone().text();
-      throw new Error(
-        `Expected a PDF but got: ${ctype}. Here is a preview: ${textPreview.substring(0, 100)}`
-      );
-    }
-
     const arrayBuffer = await response.arrayBuffer();
     console.log('PDF fetched successfully, size:', arrayBuffer.byteLength, 'bytes');
 
@@ -113,58 +104,49 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
 
     console.log('Creating PDF document...');
 
-    // Remove disableWorker/worker=null - Just provide the data
-    const documentConfig: any = {
+    // Use minimal config without worker
+    const documentConfig = {
       data: arrayBuffer,
       useWorkerFetch: false,
-      isEvalSupported: false,
-      useSystemFonts: true,
-      // DO NOT specify worker: null or disableWorker - workerSrc is now set
+      disableWorker: true,
+      isEvalSupported: false
     };
 
     const loadingTask = pdfjsLib.getDocument(documentConfig);
 
     console.log('Loading task created, waiting for PDF...');
 
-    // Set timeout to 45 seconds
+    // Reduced timeout to 15 seconds since we're running on main thread
     const parsePromise = loadingTask.promise;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        console.error('PDF parsing timed out after 45 seconds');
+        console.error('PDF parsing timed out after 15 seconds');
         loadingTask.destroy();
-        reject(new Error('PDF parsing timeout - document may be corrupted or too large'));
-      }, 45000);
+        reject(new Error('PDF parsing timeout'));
+      }, 15000);
     });
 
     const pdf = await Promise.race([parsePromise, timeoutPromise]);
     console.log('PDF loaded successfully! Pages:', pdf.numPages);
 
     let fullText = '';
-    // Lowered page extraction limit to improve reliability on large PDFs
-    const maxPages = Math.min(pdf.numPages, 10);
+    // Process all pages for small documents, limit for large ones
+    const maxPages = Math.min(pdf.numPages, pdf.numPages <= 5 ? pdf.numPages : 5);
 
     console.log(`Extracting text from ${maxPages} pages...`);
 
-    let lastPageNumExtracted = 0;
-
-    // Extract text from each page with individual timeouts
+    // Extract text from each page
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       console.log(`Processing page ${pageNum}/${maxPages}`);
 
       try {
-        const pagePromise = pdf.getPage(pageNum);
-        const pageTimeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error(`Page ${pageNum} timeout`)), 10000);
-        });
-
-        const page = await Promise.race([pagePromise, pageTimeoutPromise]);
+        const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(' ');
 
         fullText += pageText + '\n';
-        lastPageNumExtracted = pageNum;
         page.cleanup();
       } catch (pageError) {
         console.warn(`Failed to extract text from page ${pageNum}:`, pageError);
@@ -184,15 +166,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     return { text: fullText.trim() };
 
   } catch (error) {
-    // Check if the error was due to timeout and include number of pages attempted
-    const msg = error instanceof Error ? error.message : 'Unknown error during PDF extraction';
-    if (msg.includes("timeout")) {
-      return {
-        text: '',
-        error: `PDF parsing timeout after analyzing first pages (likely too large for browser extraction). Try downloading and reading in a dedicated PDF viewer.`,
-      };
-    }
     console.error('PDF extraction failed:', error);
+    const msg = error instanceof Error ? error.message : 'Unknown error during PDF extraction';
     return {
       text: '',
       error: msg,

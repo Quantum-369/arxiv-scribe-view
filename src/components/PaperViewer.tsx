@@ -10,6 +10,21 @@ interface PaperViewerProps {
 }
 
 const PaperViewer = ({ paper, onClose }: PaperViewerProps) => {
+  const handleDownload = () => {
+    // Create a temporary link to download the PDF
+    const link = document.createElement('a');
+    link.href = paper.pdfUrl;
+    link.download = `${paper.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleOpenInNewTab = () => {
+    window.open(paper.pdfUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
@@ -26,11 +41,11 @@ const PaperViewer = ({ paper, onClose }: PaperViewerProps) => {
           </p>
         </div>
         <div className="flex items-center space-x-2 ml-4">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleDownload}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
             <ExternalLink className="h-4 w-4 mr-2" />
             Open in New Tab
           </Button>
