@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -128,14 +129,26 @@ const Index = () => {
         const publishedDate = published ? new Date(published).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
         
         let pdfUrl = "";
-        Array.from(entry.getElementsByTagName("link")).forEach((link) => {
-          if (link.getAttribute("title") === "pdf") {
-            pdfUrl = link.getAttribute("href") ?? "";
-          }
-        });
-        if (!pdfUrl) {
-          pdfUrl = id.replace("abs", "pdf");
+        const pdfLink = Array.from(entry.getElementsByTagName("link")).find(
+          (link) => link.getAttribute("title") === "pdf"
+        );
+        if (pdfLink) {
+          pdfUrl = pdfLink.getAttribute("href") ?? "";
         }
+
+        if (!pdfUrl) {
+          // The ID is usually the abstract URL, so we can derive the PDF URL.
+          // e.g., http://arxiv.org/abs/1234.5678 -> http://arxiv.org/pdf/1234.5678
+          if (id.includes("/abs/")) {
+            pdfUrl = id.replace("/abs/", "/pdf/");
+          } else {
+            // Fallback for older ID formats, less common now
+            pdfUrl = id.replace("abs", "pdf");
+          }
+        }
+        
+        // Always use HTTPS for PDF links to avoid mixed-content issues from browser.
+        pdfUrl = pdfUrl.replace(/^http:\/\//i, 'https://');
         
         return {
           id,
