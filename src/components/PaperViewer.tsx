@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { X, Download, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Paper } from "@/types/paper";
 import { useState } from "react";
+import PdfCanvasViewer from "./PdfCanvasViewer";
 
 interface PaperViewerProps {
   paper: Paper;
@@ -97,25 +97,24 @@ const PaperViewer = ({ paper, onClose }: PaperViewerProps) => {
           </div>
         )}
         
-        {paper.fullText ? (
+        {/* Always show the PDF viewer when a PDF URL is present */}
+        {paper.pdfUrl ? (
           <Tabs defaultValue="content" className="h-full flex flex-col">
             <TabsList className="mx-4 mt-4 grid w-auto grid-cols-2">
-              <TabsTrigger value="content">Full Paper Content</TabsTrigger>
+              <TabsTrigger value="content">Full Paper View</TabsTrigger>
               <TabsTrigger value="metadata">Paper Info</TabsTrigger>
             </TabsList>
             
             <TabsContent value="content" className="flex-1 overflow-hidden m-4 mt-2">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-900">Extracted Text</h3>
+                <h3 className="text-sm font-semibold text-gray-900">High-Fidelity PDF Viewer</h3>
                 <Badge variant="outline" className="text-xs">
-                  {(paper.fullText.length / 1000).toFixed(1)}k chars
+                  {paper.fullText ? ((paper.fullText.length / 1000).toFixed(1) + "k chars") : ""}
                 </Badge>
               </div>
-              <ScrollArea className="h-full border border-gray-200 rounded-lg">
-                <div className="p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {paper.fullText}
-                </div>
-              </ScrollArea>
+              <div className="border border-gray-200 rounded-lg bg-gray-50 w-full overflow-auto" style={{ maxHeight: "65vh" }}>
+                <PdfCanvasViewer pdfUrl={paper.pdfUrl} />
+              </div>
             </TabsContent>
             
             <TabsContent value="metadata" className="flex-1 overflow-hidden m-4 mt-2">
