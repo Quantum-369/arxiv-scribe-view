@@ -33,9 +33,9 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Enforce NO worker for now for debug reliability
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    console.log("PDF.js worker forcibly disabled, parsing PDF in main thread only...");
+    // Correctly set the worker source for pdfjs
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    console.log("PDF.js worker enabled - using /pdf.worker.min.js");
 
     console.log('Fetching PDF from:', pdfUrl);
 
@@ -111,15 +111,15 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
       throw new Error('PDF file appears empty or corrupted.');
     }
 
-    console.log('Creating PDF document (main thread)...');
+    console.log('Creating PDF document...');
 
-    // **Always pass worker: null for now**
+    // Remove disableWorker/worker=null - Just provide the data
     const documentConfig: any = {
       data: arrayBuffer,
       useWorkerFetch: false,
       isEvalSupported: false,
       useSystemFonts: true,
-      worker: null
+      // DO NOT specify worker: null or disableWorker - workerSrc is now set
     };
 
     const loadingTask = pdfjsLib.getDocument(documentConfig);
