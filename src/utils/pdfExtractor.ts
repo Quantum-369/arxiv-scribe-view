@@ -40,7 +40,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
     } catch (workerError) {
       console.warn('Worker setup failed, falling back to main thread:', workerError);
-      pdfjsLib.GlobalWorkerOptions.disableWorker = true;
+      // Clear the worker source to disable worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
       useWorker = false;
     }
 
@@ -85,15 +86,20 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
 
     console.log('Creating PDF document...');
     
-    // Simplified document creation with better error handling
-    const loadingTask = pdfjsLib.getDocument({
+    // Create document configuration
+    const documentConfig: any = {
       data: arrayBuffer,
       useWorkerFetch: false,
       isEvalSupported: false,
-      useSystemFonts: true,
-      // Disable worker if we had issues
-      disableWorker: !useWorker
-    });
+      useSystemFonts: true
+    };
+
+    // If worker failed, force main thread processing
+    if (!useWorker) {
+      documentConfig.worker = null;
+    }
+
+    const loadingTask = pdfjsLib.getDocument(documentConfig);
 
     console.log('Loading task created, waiting for PDF...');
     
