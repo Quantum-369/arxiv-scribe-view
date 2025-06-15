@@ -12,6 +12,12 @@ import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
 import { extractPdfText } from "@/utils/simplePdfExtractor";
 import { Paper } from "@/types/paper";
 import { usePagination } from "@/hooks/usePagination";
+import { 
+  saveSearchState, 
+  getSearchState, 
+  clearSearchState, 
+  isReturningFromPaperView 
+} from "@/utils/searchStateManager";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -29,6 +35,32 @@ const Index = () => {
 
   const pagination = usePagination({ resultsPerPage: 50 });
 
+  // Initialize state from sessionStorage on mount
+  useEffect(() => {
+    const savedState = getSearchState();
+    console.log('Restoring search state:', savedState);
+    
+    if (isReturningFromPaperView()) {
+      // Restore all search state
+      setSearchQuery(savedState.query);
+      setPapers(savedState.papers);
+      setHasSearched(savedState.hasSearched);
+      setFilters(savedState.filters);
+      
+      // Restore pagination state
+      pagination.setCurrentPage(savedState.currentPage);
+      pagination.setTotalResults(savedState.totalResults);
+      
+      console.log('Search state restored successfully');
+    }
+
+    // Get API key from sessionStorage
+    const apiKey = sessionStorage.getItem('geminiApiKey');
+    if (apiKey) {
+      setGeminiApiKey(apiKey);
+    }
+  }, []);
+
   const handleSearch = async (query: string, pageOverride?: number) => {
     const targetPage = pageOverride ?? 1;
     if (targetPage === 1) {
@@ -44,6 +76,14 @@ const Index = () => {
       startIndex: pageOverride ? (pageOverride - 1) * pagination.resultsPerPage : pagination.startIndex,
     };
 
+    // Save current search parameters
+    saveSearchState({
+      query,
+      currentPage: targetPage,
+      filters,
+      hasSearched: true,
+    });
+
     if (!geminiApiKey) {
       console.log("No Gemini API key found, falling back to basic search");
       // Fallback to basic search without Gemini
@@ -58,6 +98,13 @@ const Index = () => {
         });
         setPapers(results.papers);
         pagination.setTotalResults(results.totalResults);
+        
+        // Save results to sessionStorage
+        saveSearchState({
+          papers: results.papers,
+          totalResults: results.totalResults,
+          totalPages: Math.ceil(results.totalResults / pagination.resultsPerPage),
+        });
       } catch (error) {
         console.error("Error fetching papers:", error);
         setPapers([]);
@@ -86,6 +133,13 @@ const Index = () => {
         });
         setPapers(results.papers);
         pagination.setTotalResults(results.totalResults);
+        
+        // Save results to sessionStorage
+        saveSearchState({
+          papers: results.papers,
+          totalResults: results.totalResults,
+          totalPages: Math.ceil(results.totalResults / pagination.resultsPerPage),
+        });
         setLoading(false);
         return;
       }
@@ -163,6 +217,13 @@ const Index = () => {
 
       console.log("Parsed results:", results.length, "papers, total:", totalResults);
       setPapers(results);
+      
+      // Save results to sessionStorage
+      saveSearchState({
+        papers: results,
+        totalResults,
+        totalPages: Math.ceil(totalResults / pagination.resultsPerPage),
+      });
     } catch (error) {
       console.error("Error in search:", error);
       setPapers([]);
@@ -182,6 +243,7 @@ const Index = () => {
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
+    saveSearchState({ filters: newFilters });
     if (searchQuery) {
       pagination.resetPagination();
       handleSearch(searchQuery, 1);
@@ -189,6 +251,18 @@ const Index = () => {
   };
 
   const handleViewPaper = async (paper: ArxivPaper) => {
+    // Save current search state before navigating
+    saveSearchState({
+      query: searchQuery,
+      papers,
+      currentPage: pagination.currentPage,
+      totalResults: pagination.totalResults,
+      totalPages: pagination.totalPages,
+      resultsPerPage: pagination.resultsPerPage,
+      filters,
+      hasSearched,
+    });
+
     // Convert ArxivPaper to Paper format and start text extraction
     const paperWithMetadata: Paper = {
       id: paper.id,
@@ -207,6 +281,12 @@ const Index = () => {
     
     // Navigate to paper view page
     navigate('/paper');
+  };
+
+  const handleNewSearch = (query: string) => {
+    // Clear previous state for new search
+    clearSearchState();
+    handleSearch(query, 1);
   };
 
   return (
@@ -239,7 +319,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
               <div className="flex-1 w-full">
                 <SearchBar
-                  onSearch={(query) => handleSearch(query, 1)}
+                  onSearch={handleNewSearch}
                   value={searchQuery}
                   onChange={setSearchQuery}
                 />

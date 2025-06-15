@@ -8,7 +8,7 @@ export async function getArxivUrlFromQuery(
   apiKey: string
 ): Promise<string | null> {
   // Gemini Instructions: Convert the user query to a valid arXiv API query URL
-  const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
+  const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
   const systemPrompt = `
 You are an expert at constructing arXiv API search URLs.
 When given ANY user search query for academic papers, convert it into an optimal arXiv search API URL (https://export.arxiv.org/api/query?...) to retrieve as many relevant results as possible.

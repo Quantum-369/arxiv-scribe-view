@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -18,6 +17,7 @@ const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({ pdfUrl }) => {
   const [pageStatuses, setPageStatuses] = useState<PageRenderStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const pageRefs = useRef<Array<HTMLCanvasElement | null>>([]);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Download and render PDF on mount (and when pdfUrl changes)
   useEffect(() => {
@@ -92,36 +92,45 @@ const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({ pdfUrl }) => {
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-8 pb-12">
-      {numPages === null && (
-        <div className="flex flex-col items-center justify-center h-72 w-full">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <div className="text-gray-600 text-base">Loading PDF...</div>
-        </div>
-      )}
-      {numPages !== null &&
-        Array.from({ length: numPages }).map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center w-full"
-          >
-            <div className="mb-1 text-gray-500 text-xs">Page {i + 1}</div>
-            <div className="overflow-auto rounded shadow bg-white relative">
-              <canvas
-                ref={el => (pageRefs.current[i] = el)}
-                className="max-w-full border"
-                style={{ background: "#eee" }}
-                tabIndex={0}
-              />
-            </div>
-            {pageStatuses[i] === "pending" && (
-              <div className="text-xs text-blue-400 mt-1 mb-4 animate-pulse">Rendering...</div>
-            )}
-            {pageStatuses[i] === "error" && (
-              <div className="text-xs text-red-500 mt-1 mb-4">Failed to render page.</div>
-            )}
+    <div 
+      ref={scrollContainerRef}
+      className="w-full h-full overflow-y-auto overflow-x-hidden bg-gray-100 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
+      style={{ 
+        scrollbarWidth: 'thin',
+        scrollBehavior: 'smooth'
+      }}
+    >
+      <div className="flex flex-col items-center gap-8 py-8 px-4">
+        {numPages === null && (
+          <div className="flex flex-col items-center justify-center h-72 w-full">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+            <div className="text-gray-600 text-base">Loading PDF...</div>
           </div>
-        ))}
+        )}
+        {numPages !== null &&
+          Array.from({ length: numPages }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center w-full max-w-4xl"
+            >
+              <div className="mb-2 text-gray-500 text-sm font-medium">Page {i + 1}</div>
+              <div className="overflow-hidden rounded-lg shadow-lg bg-white border border-gray-300">
+                <canvas
+                  ref={el => (pageRefs.current[i] = el)}
+                  className="max-w-full block"
+                  style={{ background: "#fff" }}
+                  tabIndex={0}
+                />
+              </div>
+              {pageStatuses[i] === "pending" && (
+                <div className="text-sm text-blue-500 mt-2 animate-pulse">Rendering page...</div>
+              )}
+              {pageStatuses[i] === "error" && (
+                <div className="text-sm text-red-500 mt-2">Failed to render page {i + 1}</div>
+              )}
+            </div>
+          ))}
+      </div>
     </div>
   );
 };
