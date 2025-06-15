@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, ChevronDown, ChevronUp, Maximize2, Minimize2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,7 @@ const PaperView = () => {
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [isAbstractOpen, setIsAbstractOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     // Get paper data from sessionStorage
@@ -66,12 +67,49 @@ const PaperView = () => {
     navigate('/');
   };
 
+  const toggleMaximize = () => {
+    setIsMaximized(!isMaximized);
+  };
+
   if (isLoading || !paper) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading paper...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMaximized) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white">
+        {/* Maximized PDF Header */}
+        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm" onClick={toggleMaximize}>
+              <Minimize2 className="h-4 w-4 mr-2" />
+              Exit Fullscreen
+            </Button>
+            <h3 className="font-semibold text-gray-900 truncate max-w-md">
+              {paper.title}
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open PDF
+            </Button>
+          </div>
+        </div>
+        {/* Maximized PDF Content */}
+        <div className="h-[calc(100vh-64px)] bg-gray-100">
+          <PdfCanvasViewer pdfUrl={paper.pdfUrl} />
         </div>
       </div>
     );
@@ -171,14 +209,25 @@ const PaperView = () => {
             <TabsContent value="viewer" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">High-Fidelity PDF Viewer</h3>
-                {paper.fullText && (
-                  <Badge variant="outline">
-                    {(paper.fullText.length / 1000).toFixed(1)}k chars extracted
-                  </Badge>
-                )}
+                <div className="flex items-center space-x-3">
+                  {paper.fullText && (
+                    <Badge variant="outline">
+                      {(paper.fullText.length / 1000).toFixed(1)}k chars extracted
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={toggleMaximize}
+                    className="flex items-center gap-2"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    Fullscreen
+                  </Button>
+                </div>
               </div>
               <div className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
-                <div style={{ height: "70vh" }}>
+                <div style={{ height: "80vh" }}>
                   <PdfCanvasViewer pdfUrl={paper.pdfUrl} />
                 </div>
               </div>
