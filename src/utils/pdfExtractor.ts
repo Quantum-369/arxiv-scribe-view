@@ -33,17 +33,9 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Try with worker first, fallback to no worker if it fails
-    let useWorker = true;
-    try {
-      console.log('Setting up PDF.js worker...');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-    } catch (workerError) {
-      console.warn('Worker setup failed, falling back to main thread:', workerError);
-      // Clear the worker source to disable worker
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-      useWorker = false;
-    }
+    // Enforce NO worker for now for debug reliability
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    console.log("PDF.js worker forcibly disabled, parsing PDF in main thread only...");
 
     console.log('Fetching PDF from:', pdfUrl);
 
@@ -54,6 +46,18 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     for (const proxyUrl of CORS_PROXIES) {
       try {
         response = await tryFetchWithProxy(pdfUrl, proxyUrl);
+
+        // **Check content-type before proceeding!**
+        const ctype = response.headers.get('content-type') || '';
+        console.log(`Fetched file content-type:`, ctype);
+        if (!ctype.includes("pdf")) {
+          // Try to preview the first 100 chars of the "PDF"
+          const textPreview = await response.clone().text();
+          throw new Error(
+            `Expected a PDF but got: ${ctype}. Here is a preview: ${textPreview.substring(0, 100)}`
+          );
+        }
+
         console.log(`Successfully fetched PDF using proxy: ${proxyUrl}`);
         break;
       } catch (error) {
@@ -71,6 +75,16 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
         if (!response.ok) {
           throw new Error(`Direct fetch failed: ${response.status}`);
         }
+        // **Check content-type**
+        const ctype = response.headers.get('content-type') || '';
+        console.log(`Direct fetch file content-type:`, ctype);
+        if (!ctype.includes("pdf")) {
+          const textPreview = await response.clone().text();
+          throw new Error(
+            `Expected a PDF but got: ${ctype}. Here is a preview: ${textPreview.substring(0, 100)}`
+          );
+        }
+
         console.log('Direct fetch succeeded');
       } catch (error) {
         throw new Error(
@@ -81,28 +95,37 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
       }
     }
 
+    // Confirm response is really a PDF!
+    const ctype = response.headers.get('content-type') || '';
+    if (!ctype.includes("pdf")) {
+      const textPreview = await response.clone().text();
+      throw new Error(
+        `Expected a PDF but got: ${ctype}. Here is a preview: ${textPreview.substring(0, 100)}`
+      );
+    }
+
     const arrayBuffer = await response.arrayBuffer();
     console.log('PDF fetched successfully, size:', arrayBuffer.byteLength, 'bytes');
 
-    console.log('Creating PDF document...');
-    
-    // Create document configuration
+    if (arrayBuffer.byteLength < 20) {
+      throw new Error('PDF file appears empty or corrupted.');
+    }
+
+    console.log('Creating PDF document (main thread)...');
+
+    // **Always pass worker: null for now**
     const documentConfig: any = {
       data: arrayBuffer,
       useWorkerFetch: false,
       isEvalSupported: false,
-      useSystemFonts: true
+      useSystemFonts: true,
+      worker: null
     };
-
-    // If worker failed, force main thread processing
-    if (!useWorker) {
-      documentConfig.worker = null;
-    }
 
     const loadingTask = pdfjsLib.getDocument(documentConfig);
 
     console.log('Loading task created, waiting for PDF...');
-    
+
     // Add timeout to prevent infinite hanging
     const parsePromise = loadingTask.promise;
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -112,7 +135,7 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
         reject(new Error('PDF parsing timeout - document may be corrupted or too large'));
       }, 30000);
     });
-    
+
     const pdf = await Promise.race([parsePromise, timeoutPromise]);
     console.log('PDF loaded successfully! Pages:', pdf.numPages);
 
@@ -124,28 +147,27 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     // Extract text from each page with individual timeouts
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       console.log(`Processing page ${pageNum}/${maxPages}`);
-      
+
       try {
         // Add timeout for each page
         const pagePromise = pdf.getPage(pageNum);
         const pageTimeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error(`Page ${pageNum} timeout`)), 10000);
         });
-        
+
         const page = await Promise.race([pagePromise, pageTimeoutPromise]);
         console.log(`Page ${pageNum} loaded, extracting text...`);
-        
+
         const textContent = await page.getTextContent();
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(' ');
-        
+
         fullText += pageText + '\n';
         console.log(`Page ${pageNum} processed, added ${pageText.length} characters`);
-        
+
         // Cleanup page to free memory
         page.cleanup();
-        
       } catch (pageError) {
         console.warn(`Failed to extract text from page ${pageNum}:`, pageError);
         // Continue with other pages instead of failing completely
@@ -154,16 +176,16 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
 
     console.log('PDF text extraction complete! Total length:', fullText.length);
-    
+
     if (fullText.trim().length === 0) {
       throw new Error('No text could be extracted from the PDF - document may be image-based or corrupted');
     }
-    
+
     // Cleanup the PDF document
     pdf.destroy();
-    
+
     return { text: fullText.trim() };
-    
+
   } catch (error) {
     console.error('PDF extraction failed:', error);
     return {
