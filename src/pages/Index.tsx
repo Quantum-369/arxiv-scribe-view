@@ -30,7 +30,7 @@ const Index = () => {
     category: "all",
     year: "",
     author: "",
-    sortBy: "relevance",
+    sortBy: "date",
   });
 
   const pagination = usePagination({ resultsPerPage: 50 });

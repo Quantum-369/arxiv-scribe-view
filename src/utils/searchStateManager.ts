@@ -48,7 +48,7 @@ export const getSearchState = (): SearchState => {
       category: "all",
       year: "",
       author: "",
-      sortBy: "relevance",
+      sortBy: "date",
     },
     hasSearched: false,
     timestamp: 0,

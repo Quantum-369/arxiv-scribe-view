@@ -1,3 +1,4 @@
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
     category: 'all',
     year: '',
     author: '',
-    sortBy: 'relevance',
+    sortBy: 'date',
     ...initialFilters
   });
 
@@ -93,8 +94,8 @@ const SearchFilters = ({ onFiltersChange, initialFilters }: SearchFiltersProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="date">Date (Latest)</SelectItem>
                 <SelectItem value="relevance">Relevance</SelectItem>
-                <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="citations">Citations</SelectItem>
               </SelectContent>
             </Select>
