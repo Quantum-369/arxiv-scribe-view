@@ -1,4 +1,3 @@
-
 import * as pdfjsLib from "pdfjs-dist";
 
 interface PdfExtractionResult {
@@ -33,8 +32,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Properly disable worker - use false instead of null
-    pdfjsLib.GlobalWorkerOptions.workerSrc = false;
+    // Properly disable worker - use empty string to disable
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     console.log("PDF.js worker disabled - running on main thread");
 
     console.log('Fetching PDF from:', pdfUrl);
