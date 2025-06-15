@@ -51,9 +51,9 @@ I have access to the paper metadata and abstract shown above. Based on this info
 
       systemPrompt += `
 
-Keep responses informative but concise (under 500 words unless the user specifically asks for detailed explanations). Be accurate and cite specific parts of the paper when possible.`;
+Keep responses informative but concise (under 500 words unless the user specifically asks for detailed explanations). Be accurate and cite specific parts of the paper when possible. If the user's question contains grammar mistakes or unclear phrasing, understand their intent and respond appropriately while maintaining professional communication.`;
     } else {
-      systemPrompt = "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative.";
+      systemPrompt = "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative. If the user's question contains grammar mistakes or unclear phrasing, understand their intent and respond appropriately while maintaining professional communication.";
     }
 
     const prompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
