@@ -12,7 +12,8 @@ interface PdfExtractionResult {
 // Fast PDF text extraction using PDF.js - based on proven simple approach
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
-    console.log('Starting PDF text extraction for:', pdfUrl);
+    console.log('Starting PDF download for:', pdfUrl);
+    const downloadStartTime = Date.now();
 
     // Download the PDF
     const response = await fetch(pdfUrl);
@@ -21,9 +22,14 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
 
     const arrayBuffer = await response.arrayBuffer();
+    const downloadEndTime = Date.now();
+    console.log(`PDF downloaded in ${(downloadEndTime - downloadStartTime) / 1000} seconds. Size: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
+    
     const typedArray = new Uint8Array(arrayBuffer);
-    console.log('PDF downloaded, size:', (arrayBuffer.byteLength / 1024).toFixed(1), 'KB');
-
+    
+    console.log('Starting PDF parsing...');
+    const parseStartTime = Date.now();
+    
     // Load the PDF document - simple and direct approach
     const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
     
@@ -33,15 +39,14 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     
     // Simple iteration through pages - this is the fastest approach
     for (let i = 1; i <= pdf.numPages; i++) {
-      console.log(`Processing page ${i} of ${pdf.numPages}...`);
-      
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
       fullText += pageText + '\n\n';
     }
 
-    console.log('PDF text extraction completed:', fullText.length, 'characters');
+    const parseEndTime = Date.now();
+    console.log(`PDF parsing and text extraction completed in ${(parseEndTime - parseStartTime) / 1000} seconds. Total characters: ${fullText.length}`);
     
     return { 
       text: fullText.trim(),
