@@ -49,7 +49,7 @@ export function buildArxivQuery(params: {
     `search_query=${encodeURIComponent(q.join("+AND+") || "all:")}`,
     `sortBy=${sortBy}`,
     `sortOrder=descending`,
-    `max_results=${params.maxResults ?? 50}`, // Increased default from 16 to 50
+    `max_results=${params.maxResults ?? 50}`,
     `start=${params.startIndex ?? 0}`,
   ].join("&");
 
@@ -85,15 +85,18 @@ function parseArxivAtomFeed(xml: string): ArxivResponse {
       entry.getElementsByTagName("category")[0]?.attributes?.getNamedItem("term")?.value ?? "";
     const published = entry.getElementsByTagName("published")[0]?.textContent;
     const publishedDate = published ? new Date(published).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+    
+    // Simplified PDF URL construction - extract arXiv ID and construct direct PDF URL
     let pdfUrl = "";
-    Array.from(entry.getElementsByTagName("link")).forEach((link) => {
-      if (link.getAttribute("title") === "pdf") {
-        pdfUrl = link.getAttribute("href") ?? "";
-      }
-    });
-    if (!pdfUrl) {
-      pdfUrl = id.replace("abs", "pdf");
+    const idMatch = id.match(/(\d{4}\.\d{4,5})/);
+    if (idMatch) {
+      pdfUrl = `https://arxiv.org/pdf/${idMatch[1]}.pdf`;
+    } else {
+      // Fallback - try to construct from the ID
+      const cleanId = id.replace(/^.*\//, '').replace('abs/', '');
+      pdfUrl = `https://arxiv.org/pdf/${cleanId}.pdf`;
     }
+    
     return {
       id,
       title,

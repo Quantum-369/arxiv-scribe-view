@@ -10,7 +10,7 @@ import ApiKeyInput from "@/components/ApiKeyInput";
 import { parseNaturalLanguageQuery } from "@/utils/queryParser";
 import { fetchArxivPapers, ArxivPaper } from "@/utils/arxivApi";
 import { getArxivUrlFromQuery } from "@/utils/geminiArxivUrl";
-import { extractPdfText } from "@/utils/pdfExtractor";
+import { extractPdfText } from "@/utils/simplePdfExtractor";
 import { Paper } from "@/types/paper";
 import { usePagination } from "@/hooks/usePagination";
 
@@ -203,8 +203,10 @@ const Index = () => {
     
     setSelectedPaper(paperWithMetadata);
     
-    // Extract PDF text in the background
-    console.log('Starting PDF text extraction for:', paper.title);
+    // Simplified PDF text extraction
+    console.log('Starting simplified PDF text extraction for:', paper.title);
+    console.log('Using PDF URL:', paper.pdfUrl);
+    
     try {
       const { text, error } = await extractPdfText(paper.pdfUrl);
       
