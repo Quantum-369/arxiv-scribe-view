@@ -9,7 +9,7 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// Simple and fast PDF text extraction using PDF.js
+// Fast PDF text extraction using PDF.js - based on proven simple approach
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Starting PDF text extraction for:', pdfUrl);
@@ -21,36 +21,24 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
 
     const arrayBuffer = await response.arrayBuffer();
+    const typedArray = new Uint8Array(arrayBuffer);
     console.log('PDF downloaded, size:', (arrayBuffer.byteLength / 1024).toFixed(1), 'KB');
 
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
+    // Load the PDF document - simple and direct approach
+    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
     
     console.log('PDF loaded, extracting text from', pdf.numPages, 'pages...');
     
     let fullText = '';
     
-    // Simple sequential extraction - much faster than batching
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      try {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        
-        const pageText = textContent.items
-          .map((item: any) => item.str || '')
-          .join(' ');
-        
-        fullText += pageText + '\n\n';
-        
-        // Log progress every 5 pages
-        if (pageNum % 5 === 0) {
-          console.log(`Extracted page ${pageNum}/${pdf.numPages}`);
-        }
-      } catch (pageError) {
-        console.warn(`Error on page ${pageNum}:`, pageError);
-        fullText += `[Error extracting page ${pageNum}]\n\n`;
-      }
+    // Simple iteration through pages - this is the fastest approach
+    for (let i = 1; i <= pdf.numPages; i++) {
+      console.log(`Processing page ${i} of ${pdf.numPages}...`);
+      
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n\n';
     }
 
     console.log('PDF text extraction completed:', fullText.length, 'characters');
