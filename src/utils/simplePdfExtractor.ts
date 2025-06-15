@@ -9,10 +9,10 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// PDF text extraction using PDF.js with optimizations
+// Simple and fast PDF text extraction using PDF.js
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
-    console.log('Starting PDF download and text extraction for:', pdfUrl);
+    console.log('Starting PDF text extraction for:', pdfUrl);
 
     // Download the PDF
     const response = await fetch(pdfUrl);
@@ -21,7 +21,7 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    console.log('PDF downloaded successfully, size:', arrayBuffer.byteLength, 'bytes');
+    console.log('PDF downloaded, size:', (arrayBuffer.byteLength / 1024).toFixed(1), 'KB');
 
     // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -29,58 +29,31 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     
     console.log('PDF loaded, extracting text from', pdf.numPages, 'pages...');
     
-    // Limit pages for faster extraction (first 20 pages should be enough for most papers)
-    const maxPages = Math.min(pdf.numPages, 20);
-    console.log(`Processing first ${maxPages} pages for faster extraction...`);
-    
-    // Process pages in parallel batches for better performance
-    const batchSize = 5;
     let fullText = '';
     
-    for (let startPage = 1; startPage <= maxPages; startPage += batchSize) {
-      const endPage = Math.min(startPage + batchSize - 1, maxPages);
-      console.log(`Processing pages ${startPage}-${endPage}...`);
-      
-      // Process batch of pages in parallel
-      const pagePromises = [];
-      for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
-        pagePromises.push(
-          pdf.getPage(pageNum)
-            .then(page => page.getTextContent())
-            .then(textContent => ({
-              pageNum,
-              text: textContent.items
-                .map((item: any) => item.str || '')
-                .join(' ')
-            }))
-            .catch(error => ({
-              pageNum,
-              text: `[Error extracting page ${pageNum}]`
-            }))
-        );
+    // Simple sequential extraction - much faster than batching
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        const pageText = textContent.items
+          .map((item: any) => item.str || '')
+          .join(' ');
+        
+        fullText += pageText + '\n\n';
+        
+        // Log progress every 5 pages
+        if (pageNum % 5 === 0) {
+          console.log(`Extracted page ${pageNum}/${pdf.numPages}`);
+        }
+      } catch (pageError) {
+        console.warn(`Error on page ${pageNum}:`, pageError);
+        fullText += `[Error extracting page ${pageNum}]\n\n`;
       }
-      
-      // Wait for batch to complete with timeout
-      const results = await Promise.race([
-        Promise.all(pagePromises),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Page extraction timeout')), 10000)
-        )
-      ]) as Array<{pageNum: number, text: string}>;
-      
-      // Add results in order
-      results
-        .sort((a, b) => a.pageNum - b.pageNum)
-        .forEach(result => {
-          fullText += result.text + '\n\n';
-        });
     }
 
-    if (pdf.numPages > maxPages) {
-      fullText += `\n\n[Note: This paper has ${pdf.numPages} pages. Only the first ${maxPages} pages were processed for faster loading. Full content may be available in the PDF.]`;
-    }
-
-    console.log('PDF text extraction completed, total length:', fullText.length, 'characters');
+    console.log('PDF text extraction completed:', fullText.length, 'characters');
     
     return { 
       text: fullText.trim(),
@@ -88,7 +61,7 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     };
 
   } catch (error) {
-    console.error('PDF text extraction failed:', error);
+    console.error('PDF extraction failed:', error);
     return {
       text: '',
       error: error instanceof Error ? error.message : 'Failed to extract PDF text'
