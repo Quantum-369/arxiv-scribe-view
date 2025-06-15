@@ -10,32 +10,29 @@ export async function getArxivUrlFromQuery(
 You are an expert at constructing arXiv API search URLs that return MANY relevant results. Your PRIMARY GOAL is to NEVER return zero results.
 
 CRITICAL RULES FOR SUCCESS:
-1. ALWAYS use extremely broad search terms.
-2. Prefix every term with \`all:\` for maximum coverage across title, abstract, authors, comments, categories, etc.
-3. Combine related terms with \`OR\`—be generous in synonyms, abbreviations, variants.
-4. Always request at least 50 results (\`max_results=50\` or higher).
-5. When in doubt, err on the side of too many results rather than too few.
-6. If the user's topic maps to one or more arXiv subject classes (e.g., cs.AI, econ, stat.ML, physics), append them with \`OR cat:<subject>\`.
+1. ALWAYS use extremely broad search terms
+2. Use "all:" prefix for maximum coverage across all fields
+3. Use OR operators extensively between related concepts
+4. Start with 50+ results (max_results=50 or higher)
+5. Be VERY generous - better to have too many results than zero
+6. For any economic/business topics, search across cs.AI, econ.*, stat.ML, cs.CY
 
-STANDARD QUERY FORM:
-https://export.arxiv.org/api/query?
-search_query=all:"TERM1"+OR+all:"TERM1_ALT"+OR+all:"TERM2"+…+OR+cat:SUBJECT1+OR+cat:SUBJECT2
-&sortBy=relevance
-&max_results=50
+PROVEN SUCCESSFUL PATTERNS:
+- For "AI economy" → https://export.arxiv.org/api/query?search_query=all:"artificial+intelligence"+OR+all:"AI"+OR+all:"machine+learning"+OR+all:"economic"+OR+all:"economy"+OR+all:"prediction"+OR+all:"impact"&sortBy=relevance&max_results=50
+- For "economics prediction" → https://export.arxiv.org/api/query?search_query=all:"economic"+OR+all:"economy"+OR+all:"prediction"+OR+all:"forecast"+OR+all:"model"&sortBy=relevance&max_results=50
+- For "AI impact" → https://export.arxiv.org/api/query?search_query=all:"AI"+OR+all:"artificial+intelligence"+OR+all:"impact"+OR+all:"effect"+OR+all:"influence"&sortBy=relevance&max_results=50
 
-STRATEGY FOR EVERY USER QUERY:
-1. Parse the user's request to identify 2–3 core concepts.
-2. Expand each concept into common synonyms, abbreviations, related buzz‑words.
-3. Assemble an \`all:\`‑prefixed OR chain of every variant.
-4. Optionally append any relevant \`cat:\` filters to broaden the subject scope.
-5. Set \`sortBy=relevance\` and \`max_results=50+\`.
-6. Output ONLY the fully‑formed arXiv API URL—no commentary.
+STRATEGY FOR GUARANTEED RESULTS:
+1. Extract 2-3 core concepts from user query
+2. Add common synonyms and related terms
+3. Use broad "all:" searches with OR operators
+4. Set max_results to 50+
+5. Use relevance sorting for best matches
 
-Example (for a generic "quantum optimization" request):
-https://export.arxiv.org/api/query?search_query=all:"quantum"+OR+all:"quantum+computing"+OR+all:"optimization"+OR+all:"quantum+optimization"+OR+all:"variational"+OR+all:"VQE"+OR+cat:quant-ph+OR+cat:cs.DS&sortBy=relevance&max_results=50
+ONLY return the complete arXiv API URL, nothing else.
 `;
 
-  const prompt = `${systemPrompt}\n\nUser Query: "${userQuery}"\n\nGenerate the arXiv API URL:`;
+  const prompt = `${systemPrompt}\n\nUser Query: "${userQuery}"\n\nGenerate a broad arXiv search URL with many OR terms that guarantees results:`;
 
   const body = {
     contents: [
@@ -75,7 +72,7 @@ https://export.arxiv.org/api/query?search_query=all:"quantum"+OR+all:"quantum+co
     console.log("Gemini response text:", text);
     
     // Fixed URL extraction - look for arXiv URLs specifically and handle quotes properly
-    const arxivUrlMatch = text.match(/https?:\/\/export\.arxiv\.org\/api\/query\?[^\\s\n\r]*/);
+    const arxivUrlMatch = text.match(/https?:\/\/export\.arxiv\.org\/api\/query\?[^\s\n\r"']*/);
     const generatedUrl = arxivUrlMatch ? arxivUrlMatch[0] : null;
     
     console.log("Extracted URL:", generatedUrl);
