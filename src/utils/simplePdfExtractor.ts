@@ -4,12 +4,12 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// Simple PDF download and storage with chunked base64 conversion
+// Simple PDF download without storage - just verify accessibility
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Starting PDF download for:', pdfUrl);
 
-    // Download the PDF
+    // Download the PDF to verify it's accessible
     const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status}`);
@@ -18,26 +18,11 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     const arrayBuffer = await response.arrayBuffer();
     console.log('PDF downloaded successfully, size:', arrayBuffer.byteLength, 'bytes');
 
-    // Convert to base64 in chunks to avoid call stack overflow
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const chunkSize = 8192; // Process 8KB at a time
-    let base64String = '';
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      const chunkString = String.fromCharCode.apply(null, Array.from(chunk));
-      base64String += btoa(chunkString);
-    }
-    
-    // Store in localStorage
-    localStorage.setItem('currentPdfData', base64String);
-    localStorage.setItem('currentPdfUrl', pdfUrl);
-    
-    console.log('PDF stored in localStorage successfully');
-
     // For now, return a success message with the PDF size
+    // In the future, this could be enhanced with actual text extraction
+    const sizeInKB = (arrayBuffer.byteLength / 1024).toFixed(1);
     return { 
-      text: `PDF downloaded and stored successfully (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB). Ready for processing.`,
+      text: `PDF downloaded successfully (${sizeInKB} KB). Text extraction will be implemented in a future update.`,
       error: undefined
     };
 
