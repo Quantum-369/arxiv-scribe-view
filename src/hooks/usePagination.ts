@@ -39,6 +39,7 @@ export const usePagination = ({
     isLoadingMore,
     setIsLoadingMore,
     setTotalResults,
+    setCurrentPage,
     goToPage,
     nextPage,
     prevPage,
