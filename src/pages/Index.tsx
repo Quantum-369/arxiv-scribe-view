@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
@@ -20,6 +19,7 @@ const Index = () => {
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [loading, setLoading] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
   const [filters, setFilters] = useState({
     category: "all",
     year: "",
@@ -34,6 +34,7 @@ const Index = () => {
     const targetPage = pageOverride ?? 1;
     if (targetPage === 1) {
       pagination.resetPagination();
+      setHasSearched(true);
     }
     
     setLoading(true);
@@ -240,48 +241,79 @@ const Index = () => {
       <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
         {/* Main Content */}
         <div className={`flex-1 flex flex-col ${selectedPaper ? "lg:w-1/2" : "w-full"}`}>
-          {/* Search Section */}
-          <div className="bg-white border-b border-gray-200 p-4 lg:p-6">
+          {/* Search Section - Compact when results are shown */}
+          <div className={`bg-white border-b border-gray-200 transition-all duration-300 ${
+            hasSearched ? "p-2 lg:p-3" : "p-4 lg:p-6"
+          }`}>
             <div className="max-w-4xl mx-auto">
-              <div className="flex flex-col space-y-4">
-                <div className="text-center mb-4">
-                  <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
-                  <p className="text-sm lg:text-base text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
-                </div>
+              <div className="flex flex-col space-y-3">
+                {!hasSearched && (
+                  <div className="text-center mb-4">
+                    <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">Search Academic Papers</h2>
+                    <p className="text-sm lg:text-base text-gray-600">Try: "machine learning transformers" or "quantum computing 2024"</p>
+                  </div>
+                )}
                 <ApiKeyInput onApiKeyChange={setGeminiApiKey} />
-                <SearchBar
-                  onSearch={(query) => handleSearch(query, 1)}
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                />
-                <SearchFilters onFiltersChange={handleFiltersChange} />
+                <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-center">
+                  <SearchBar
+                    onSearch={(query) => handleSearch(query, 1)}
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                  />
+                  {hasSearched && (
+                    <div className="text-sm text-gray-600 whitespace-nowrap">
+                      {loading ? "Searching..." : pagination.totalResults > 0 ? 
+                        `${pagination.totalResults.toLocaleString()} papers` : 
+                        `${papers.length} papers`
+                      }
+                      {geminiApiKey && " (AI)"}
+                    </div>
+                  )}
+                </div>
+                {hasSearched && (
+                  <SearchFilters onFiltersChange={handleFiltersChange} />
+                )}
               </div>
             </div>
           </div>
-          {/* Results Section */}
+          
+          {/* Results Section - More space when search is performed */}
           <div className="flex-1 overflow-auto p-4 lg:p-6">
             <div className="max-w-4xl mx-auto">
-              <div className="mb-4">
-                <p className="text-sm lg:text-base text-gray-600">
-                  {loading ? "Searching..." : pagination.totalResults > 0 ? 
-                    `${pagination.totalResults.toLocaleString()} papers found` : 
-                    `${papers.length} papers found`
-                  }
-                  {geminiApiKey && " (AI-enhanced search enabled)"}
-                </p>
-              </div>
-              <PapersList
-                papers={papers}
-                onViewPaper={handleViewPaper}
-                loading={loading}
-                currentPage={pagination.currentPage}
-                totalPages={pagination.totalPages}
-                totalResults={pagination.totalResults}
-                resultsPerPage={pagination.resultsPerPage}
-                onPageChange={handlePageChange}
-                hasNextPage={pagination.hasNextPage}
-                hasPrevPage={pagination.hasPrevPage}
-              />
+              {!hasSearched && (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to search</h3>
+                  <p className="text-gray-600">Enter your search query above to find academic papers</p>
+                </div>
+              )}
+              
+              {hasSearched && (
+                <>
+                  {!hasSearched && (
+                    <div className="mb-4">
+                      <p className="text-sm lg:text-base text-gray-600">
+                        {loading ? "Searching..." : pagination.totalResults > 0 ? 
+                          `${pagination.totalResults.toLocaleString()} papers found` : 
+                          `${papers.length} papers found`
+                        }
+                        {geminiApiKey && " (AI-enhanced search enabled)"}
+                      </p>
+                    </div>
+                  )}
+                  <PapersList
+                    papers={papers}
+                    onViewPaper={handleViewPaper}
+                    loading={loading}
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalResults={pagination.totalResults}
+                    resultsPerPage={pagination.resultsPerPage}
+                    onPageChange={handlePageChange}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
