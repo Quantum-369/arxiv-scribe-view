@@ -1,10 +1,6 @@
 
 import * as pdfjsLib from "pdfjs-dist";
 
-// We will no longer import the worker locally, instead using a CDN.
-// This is a more robust solution that avoids Vite bundling issues.
-// import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
-
 interface PdfExtractionResult {
   text: string;
   error?: string;
@@ -37,9 +33,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Fetching PDF from:', pdfUrl);
 
-    // Set up the worker from a CDN. This is more reliable than local bundling.
-    // The pdfjsLib.version property ensures we use the same version for the worker and the library.
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+    // Use a more reliable worker setup - use jsdelivr CDN which is more stable
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
     let response: Response | null = null;
     let lastError: Error | null = null;
