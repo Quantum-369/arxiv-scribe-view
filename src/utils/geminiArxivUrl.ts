@@ -71,8 +71,9 @@ ONLY return the complete arXiv API URL, nothing else.
     
     console.log("Gemini response text:", text);
     
-    const urlMatch = text.match(/https?:\/\/[^\s)'"`]+/);
-    const generatedUrl = urlMatch ? urlMatch[0] : null;
+    // Fixed URL extraction - look for arXiv URLs specifically and handle quotes properly
+    const arxivUrlMatch = text.match(/https?:\/\/export\.arxiv\.org\/api\/query\?[^\\s\n\r]*/);
+    const generatedUrl = arxivUrlMatch ? arxivUrlMatch[0] : null;
     
     console.log("Extracted URL:", generatedUrl);
     return generatedUrl;
