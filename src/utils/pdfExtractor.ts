@@ -71,23 +71,52 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     }
 
     const arrayBuffer = await response.arrayBuffer();
+    console.log('PDF fetched successfully, size:', arrayBuffer.byteLength, 'bytes');
 
     console.log('Parsing PDF content...');
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    // Add timeout to PDF parsing to prevent hanging
+    const parsePromise = pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+      useSystemFonts: true
+    }).promise;
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('PDF parsing timeout')), 30000); // 30 second timeout
+    });
+    
+    const pdf = await Promise.race([parsePromise, timeoutPromise]);
+    console.log('PDF parsed successfully, pages:', pdf.numPages);
 
     let fullText = '';
 
-    // Extract text from each page
+    // Extract text from each page with progress logging
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
+      console.log(`Processing page ${pageNum}/${pdf.numPages}`);
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+        
+        // Cleanup page to free memory
+        page.cleanup();
+      } catch (pageError) {
+        console.warn(`Failed to extract text from page ${pageNum}:`, pageError);
+        // Continue with other pages
+      }
     }
 
     console.log('PDF text extraction complete, length:', fullText.length);
+    
+    if (fullText.trim().length === 0) {
+      throw new Error('No text could be extracted from the PDF');
+    }
+    
     return { text: fullText.trim() };
   } catch (error) {
     console.error('Error extracting PDF text:', error);
