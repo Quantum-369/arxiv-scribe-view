@@ -126,51 +126,48 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
 
     console.log('Loading task created, waiting for PDF...');
 
-    // Add timeout to prevent infinite hanging
+    // Set timeout to 45 seconds
     const parsePromise = loadingTask.promise;
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        console.error('PDF parsing timed out after 30 seconds');
+        console.error('PDF parsing timed out after 45 seconds');
         loadingTask.destroy();
         reject(new Error('PDF parsing timeout - document may be corrupted or too large'));
-      }, 30000);
+      }, 45000);
     });
 
     const pdf = await Promise.race([parsePromise, timeoutPromise]);
     console.log('PDF loaded successfully! Pages:', pdf.numPages);
 
     let fullText = '';
-    const maxPages = Math.min(pdf.numPages, 50); // Limit to 50 pages to prevent hanging
+    // Lowered page extraction limit to improve reliability on large PDFs
+    const maxPages = Math.min(pdf.numPages, 10);
 
     console.log(`Extracting text from ${maxPages} pages...`);
+
+    let lastPageNumExtracted = 0;
 
     // Extract text from each page with individual timeouts
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       console.log(`Processing page ${pageNum}/${maxPages}`);
 
       try {
-        // Add timeout for each page
         const pagePromise = pdf.getPage(pageNum);
         const pageTimeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error(`Page ${pageNum} timeout`)), 10000);
         });
 
         const page = await Promise.race([pagePromise, pageTimeoutPromise]);
-        console.log(`Page ${pageNum} loaded, extracting text...`);
-
         const textContent = await page.getTextContent();
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(' ');
 
         fullText += pageText + '\n';
-        console.log(`Page ${pageNum} processed, added ${pageText.length} characters`);
-
-        // Cleanup page to free memory
+        lastPageNumExtracted = pageNum;
         page.cleanup();
       } catch (pageError) {
         console.warn(`Failed to extract text from page ${pageNum}:`, pageError);
-        // Continue with other pages instead of failing completely
         continue;
       }
     }
@@ -187,10 +184,18 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     return { text: fullText.trim() };
 
   } catch (error) {
+    // Check if the error was due to timeout and include number of pages attempted
+    const msg = error instanceof Error ? error.message : 'Unknown error during PDF extraction';
+    if (msg.includes("timeout")) {
+      return {
+        text: '',
+        error: `PDF parsing timeout after analyzing first pages (likely too large for browser extraction). Try downloading and reading in a dedicated PDF viewer.`,
+      };
+    }
     console.error('PDF extraction failed:', error);
     return {
       text: '',
-      error: error instanceof Error ? error.message : 'Unknown error during PDF extraction',
+      error: msg,
     };
   }
 };
