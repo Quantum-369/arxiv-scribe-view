@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { X, Download, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -47,19 +48,45 @@ const PaperViewer = ({ paper, onClose }: PaperViewerProps) => {
         </p>
       </div>
 
-      {/* PDF Viewer */}
-      <div className="flex-1 bg-gray-100">
-        <div className="h-full flex items-center justify-center">
-          <div className="text-center">
-            <div className="bg-red-600 text-white p-8 rounded-lg mb-4">
-              PDF
-            </div>
-            <p className="text-gray-600 mb-4">PDF viewer would be embedded here</p>
-            <p className="text-sm text-gray-500">
-              In a real implementation, you would use a PDF viewer library like react-pdf or pdf.js
+      {/* PDF Content */}
+      <div className="flex-1 overflow-auto p-4">
+        {paper.textExtractionError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-yellow-800">
+              Could not extract full paper text: {paper.textExtractionError}
             </p>
           </div>
-        </div>
+        )}
+        
+        {paper.fullText ? (
+          <div className="bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-900">Full Paper Content</h3>
+              <Badge variant="outline" className="text-xs">
+                {(paper.fullText.length / 1000).toFixed(1)}k characters
+              </Badge>
+            </div>
+            <div className="prose prose-sm max-w-none">
+              <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-mono">
+                {paper.fullText}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="bg-gray-200 text-gray-600 p-8 rounded-lg mb-4">
+                <p className="text-lg font-medium">Extracting PDF content...</p>
+              </div>
+              <p className="text-gray-600 mb-4">
+                The full paper text is being extracted from the PDF
+              </p>
+              <p className="text-sm text-gray-500">
+                This may take a few moments depending on the paper length
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
