@@ -4,60 +4,38 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// Ultra-simple PDF text extraction using external service
+// Simple PDF download and storage
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
-    console.log('Starting simple PDF text extraction for:', pdfUrl);
+    console.log('Starting PDF download for:', pdfUrl);
 
-    // Use a simple PDF-to-text conversion service
-    const apiUrl = `https://api.pdflayer.com/api/convert?access_key=free&document_url=${encodeURIComponent(pdfUrl)}&format=txt`;
+    // Download the PDF
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    console.log('PDF downloaded successfully, size:', arrayBuffer.byteLength, 'bytes');
+
+    // Store in localStorage
+    const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    localStorage.setItem('currentPdfData', base64String);
+    localStorage.setItem('currentPdfUrl', pdfUrl);
     
-    try {
-      const response = await fetch(apiUrl);
-      if (response.ok) {
-        const text = await response.text();
-        if (text && text.length > 100) {
-          console.log('PDF text extraction successful via PDFLayer, length:', text.length);
-          return { text: text.trim() };
-        }
-      }
-    } catch (error) {
-      console.log('PDFLayer service failed, trying fallback...');
-    }
+    console.log('PDF stored in localStorage');
 
-    // Fallback: Try to fetch PDF and use a simple approach
-    try {
-      const pdfResponse = await fetch(pdfUrl);
-      if (!pdfResponse.ok) {
-        throw new Error(`Failed to fetch PDF: ${pdfResponse.status}`);
-      }
-
-      const arrayBuffer = await pdfResponse.arrayBuffer();
-      console.log('PDF fetched successfully, size:', arrayBuffer.byteLength, 'bytes');
-
-      // Store in localStorage for potential future use
-      const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      localStorage.setItem('currentPdfData', base64String);
-      
-      // For now, return a message indicating we have the PDF
-      return { 
-        text: `PDF downloaded successfully (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB). Text extraction functionality will be enhanced in the next update.`,
-        error: undefined
-      };
-
-    } catch (fetchError) {
-      console.error('PDF fetch failed:', fetchError);
-      return {
-        text: '',
-        error: 'Failed to download PDF from arXiv'
-      };
-    }
+    // For now, return a success message with the PDF size
+    return { 
+      text: `PDF downloaded and stored successfully (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB). Ready for processing.`,
+      error: undefined
+    };
 
   } catch (error) {
-    console.error('PDF extraction failed:', error);
+    console.error('PDF download failed:', error);
     return {
       text: '',
-      error: error instanceof Error ? error.message : 'Unknown error during PDF extraction'
+      error: error instanceof Error ? error.message : 'Failed to download PDF'
     };
   }
 };
