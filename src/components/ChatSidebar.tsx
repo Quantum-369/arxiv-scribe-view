@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,19 +60,16 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
     setStreamingMessageId(assistantMessageId);
 
     try {
-      let fullContent = '';
-      
       await getChatResponseStream(
         currentInput, 
         messages, 
         paper, 
         geminiApiKey,
         (chunk: string) => {
-          fullContent += chunk;
           setMessages(prev => 
             prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: fullContent }
+                ? { ...msg, content: msg.content + chunk }
                 : msg
             )
           );
