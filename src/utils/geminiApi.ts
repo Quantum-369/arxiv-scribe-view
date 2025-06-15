@@ -122,8 +122,8 @@ Keep responses informative but concise (under 500 words unless the user specific
 export const getChatResponseStream = async (
   userMessage: string,
   conversationHistory: Message[],
-  paper?: Paper, 
-  geminiApiKey?: string,
+  paper: Paper | undefined,
+  geminiApiKey: string,
   onChunk: (chunk: string) => void
 ): Promise<void> => {
   if (!geminiApiKey) {
