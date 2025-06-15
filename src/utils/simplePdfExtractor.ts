@@ -1,15 +1,20 @@
 
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set the worker source
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+
 interface PdfExtractionResult {
   text: string;
   error?: string;
 }
 
-// Simple PDF download without storage - just verify accessibility
+// PDF text extraction using PDF.js
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
-    console.log('Starting PDF download for:', pdfUrl);
+    console.log('Starting PDF download and text extraction for:', pdfUrl);
 
-    // Download the PDF to verify it's accessible
+    // Download the PDF
     const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status}`);
@@ -18,19 +23,49 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
     const arrayBuffer = await response.arrayBuffer();
     console.log('PDF downloaded successfully, size:', arrayBuffer.byteLength, 'bytes');
 
-    // For now, return a success message with the PDF size
-    // In the future, this could be enhanced with actual text extraction
-    const sizeInKB = (arrayBuffer.byteLength / 1024).toFixed(1);
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    console.log('PDF loaded, extracting text from', pdf.numPages, 'pages...');
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        // Combine all text items
+        const pageText = textContent.items
+          .map((item: any) => item.str || '')
+          .join(' ');
+        
+        fullText += pageText + '\n\n';
+        
+        // Log progress for larger PDFs
+        if (pageNum % 10 === 0 || pageNum === pdf.numPages) {
+          console.log(`Extracted text from page ${pageNum}/${pdf.numPages}`);
+        }
+      } catch (pageError) {
+        console.warn(`Error extracting text from page ${pageNum}:`, pageError);
+        fullText += `[Error extracting page ${pageNum}]\n\n`;
+      }
+    }
+
+    console.log('PDF text extraction completed, total length:', fullText.length, 'characters');
+    
     return { 
-      text: `PDF downloaded successfully (${sizeInKB} KB). Text extraction will be implemented in a future update.`,
+      text: fullText.trim(),
       error: undefined
     };
 
   } catch (error) {
-    console.error('PDF download failed:', error);
+    console.error('PDF text extraction failed:', error);
     return {
       text: '',
-      error: error instanceof Error ? error.message : 'Failed to download PDF'
+      error: error instanceof Error ? error.message : 'Failed to extract PDF text'
     };
   }
 };
