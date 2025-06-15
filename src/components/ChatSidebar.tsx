@@ -39,24 +39,52 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
     try {
       const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
       
-      const systemPrompt = paper 
-        ? `You are an expert research assistant helping users understand an academic paper. Here are the paper details:
+      let systemPrompt = "";
+      
+      if (paper) {
+        // Build comprehensive system prompt with all available paper information
+        systemPrompt = `You are an expert research assistant helping users understand an academic paper. Here are the complete paper details:
 
+PAPER METADATA:
 Title: ${paper.title}
 Authors: ${paper.authors.join(", ")}
 Category: ${paper.category}
 Published: ${paper.publishedDate}
-Abstract: ${paper.abstract}
+Abstract: ${paper.abstract}`;
 
-${paper.fullText ? `COMPLETE PAPER CONTENT:
+        // Add full text if available
+        if (paper.fullText && paper.fullText.trim().length > 0) {
+          systemPrompt += `
+
+COMPLETE PAPER CONTENT:
 ${paper.fullText}
 
-Based on this complete paper content, provide detailed, accurate insights about the paper's methodology, findings, analysis, results, conclusions, and any specific sections the user asks about. You have access to the entire paper text, so you can answer questions about specific details, equations, figures, experimental procedures, results, and conclusions.` : 'I have access to the paper metadata and abstract. Based on this information, provide helpful insights about the paper\'s methodology, findings, implications, and context within the field. If users ask about specific details not available in the metadata, acknowledge the limitation and provide insights based on what is available.'}
+You have access to the ENTIRE paper content above. Use this complete text to provide detailed, accurate answers about:
+- Specific methodologies and experimental procedures
+- Detailed findings and results
+- Data analysis and statistical methods
+- Conclusions and implications
+- Any specific sections, figures, tables, or equations mentioned
+- Technical details and implementation specifics
+- Related work and citations within the paper
 
-Keep responses informative but concise (under 500 words). If the user asks about specific sections, figures, or equations, reference them directly from the paper content.`
-        : "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative.";
+When answering questions, reference specific parts of the paper content directly. You can quote exact passages when relevant.`;
+        } else {
+          systemPrompt += `
+
+I have access to the paper metadata and abstract shown above. Based on this information, I can provide insights about the paper's general methodology, findings, implications, and context within the field. ${paper.textExtractionError ? `Note: Full text extraction failed (${paper.textExtractionError}), so my responses are based on the abstract and metadata only.` : 'I can help explain the research based on the available information.'}`;
+        }
+
+        systemPrompt += `
+
+Keep responses informative but concise (under 500 words unless the user specifically asks for detailed explanations). Be accurate and cite specific parts of the paper when possible.`;
+      } else {
+        systemPrompt = "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative.";
+      }
 
       const prompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
+
+      console.log('Sending chat request with paper content length:', paper?.fullText?.length || 0);
 
       const body = {
         contents: [
@@ -164,6 +192,14 @@ Keep responses informative but concise (under 500 words). If the user asks about
               <p className="text-sm text-yellow-800">
                 Note: Could not extract full paper text ({paper.textExtractionError}). 
                 Chat responses will be based on the abstract and metadata only.
+              </p>
+            </div>
+          )}
+          {paper?.fullText && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-800">
+                ✓ Full paper content extracted ({(paper.fullText.length / 1000).toFixed(1)}k characters). 
+                I can now answer detailed questions about the entire paper.
               </p>
             </div>
           )}
