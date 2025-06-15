@@ -21,6 +21,7 @@ export function buildArxivQuery(params: {
   searchTerms?: string[];
   category?: string;
   year?: string;
+  author?: string;
   sortBy?: string;
   maxResults?: number;
   startIndex?: number;
@@ -33,22 +34,37 @@ export function buildArxivQuery(params: {
   }
 
   if (params.category && params.category !== "all") {
-    q.push(`cat:${params.category.replace("-", ".")}`);
+    // Handle both old format (cs.AI) and new format (cs.AI)
+    const categoryCode = params.category.includes('.') ? params.category : params.category;
+    q.push(`cat:${categoryCode}`);
+  }
+
+  if (params.author) {
+    q.push(`au:${params.author}`);
   }
 
   if (params.year) {
-    // arXiv doesn't have a direct year param - use submittedDate instead (YYYY)
+    // arXiv uses submittedDate for filtering by year
     q.push(`submittedDate:[${params.year}01010000+TO+${params.year}12312359]`);
   }
 
-  let sortBy = "relevance";
-  if (params.sortBy === "date") sortBy = "submittedDate";
-  else if (params.sortBy === "citations") sortBy = "relevance"; // arXiv API doesn't support citations
+  // Handle sorting - default to submittedDate for latest papers
+  let sortBy = "submittedDate"; // Default to date sorting for latest papers
+  let sortOrder = "descending"; // Latest first
+  
+  if (params.sortBy === "relevance") {
+    sortBy = "relevance";
+    sortOrder = "descending";
+  } else if (params.sortBy === "citations") {
+    sortBy = "relevance"; // arXiv API doesn't support citations, use relevance
+    sortOrder = "descending";
+  }
+  // If sortBy is "date" or undefined, use submittedDate
 
   const queryString = [
     `search_query=${encodeURIComponent(q.join("+AND+") || "all:")}`,
     `sortBy=${sortBy}`,
-    `sortOrder=descending`,
+    `sortOrder=${sortOrder}`,
     `max_results=${params.maxResults ?? 50}`,
     `start=${params.startIndex ?? 0}`,
   ].join("&");
@@ -60,6 +76,7 @@ export async function fetchArxivPapers(
   params: Parameters<typeof buildArxivQuery>[0]
 ): Promise<ArxivResponse> {
   const url = buildArxivQuery(params);
+  console.log('Built arXiv URL:', url);
   const response = await fetch(url, { headers: { Accept: "application/atom+xml" } });
   if (!response.ok) throw new Error("Failed to fetch from arXiv");
   const xml = await response.text();

@@ -30,7 +30,7 @@ const Index = () => {
     category: "all",
     year: "",
     author: "",
-    sortBy: "date",
+    sortBy: "date", // Default to date for latest papers
   });
 
   const pagination = usePagination({ resultsPerPage: 50 });
@@ -76,6 +76,14 @@ const Index = () => {
       startIndex: pageOverride ? (pageOverride - 1) * pagination.resultsPerPage : pagination.startIndex,
     };
 
+    // Always include current filters in search parameters
+    const filtersForSearch = {
+      category: filters.category !== 'all' ? filters.category : undefined,
+      year: filters.year || undefined,
+      author: filters.author || undefined,
+      sortBy: filters.sortBy || 'date',
+    };
+
     // Save current search parameters
     saveSearchState({
       query,
@@ -84,6 +92,8 @@ const Index = () => {
       hasSearched: true,
     });
 
+    console.log('Searching with filters:', filtersForSearch);
+
     if (!geminiApiKey) {
       console.log("No Gemini API key found, falling back to basic search");
       // Fallback to basic search without Gemini
@@ -91,9 +101,7 @@ const Index = () => {
       try {
         const results = await fetchArxivPapers({
           searchTerms: parsedQuery.searchTerms.length > 0 ? parsedQuery.searchTerms : undefined,
-          category: parsedQuery.category,
-          year: parsedQuery.dateFilter,
-          sortBy: parsedQuery.sortBy,
+          ...filtersForSearch,
           ...searchParams,
         });
         setPapers(results.papers);
@@ -122,13 +130,11 @@ const Index = () => {
       
       if (!url) {
         console.log("Could not generate valid arXiv URL, using fallback");
-        // Fallback to parsed query
+        // Fallback to parsed query with filters
         const parsedQuery = parseNaturalLanguageQuery(query);
         const results = await fetchArxivPapers({
           searchTerms: parsedQuery.searchTerms.length > 0 ? parsedQuery.searchTerms : undefined,
-          category: parsedQuery.category,
-          year: parsedQuery.dateFilter,
-          sortBy: parsedQuery.sortBy,
+          ...filtersForSearch,
           ...searchParams,
         });
         setPapers(results.papers);
@@ -144,10 +150,47 @@ const Index = () => {
         return;
       }
 
-      // Modify the URL to include pagination parameters
+      // Modify the URL to include pagination and filter parameters
       const urlObj = new URL(url);
       urlObj.searchParams.set('max_results', searchParams.maxResults.toString());
       urlObj.searchParams.set('start', searchParams.startIndex.toString());
+      
+      // Apply filters to the generated URL
+      if (filtersForSearch.category) {
+        // Modify the search query to include category filter
+        const currentQuery = urlObj.searchParams.get('search_query') || '';
+        const categoryQuery = `cat:${filtersForSearch.category}`;
+        const newQuery = currentQuery ? `${currentQuery}+AND+${categoryQuery}` : categoryQuery;
+        urlObj.searchParams.set('search_query', newQuery);
+      }
+      
+      if (filtersForSearch.author) {
+        const currentQuery = urlObj.searchParams.get('search_query') || '';
+        const authorQuery = `au:${filtersForSearch.author}`;
+        const newQuery = currentQuery ? `${currentQuery}+AND+${authorQuery}` : authorQuery;
+        urlObj.searchParams.set('search_query', newQuery);
+      }
+      
+      if (filtersForSearch.year) {
+        const currentQuery = urlObj.searchParams.get('search_query') || '';
+        const yearQuery = `submittedDate:[${filtersForSearch.year}01010000+TO+${filtersForSearch.year}12312359]`;
+        const newQuery = currentQuery ? `${currentQuery}+AND+${yearQuery}` : yearQuery;
+        urlObj.searchParams.set('search_query', newQuery);
+      }
+      
+      // Apply sorting
+      if (filtersForSearch.sortBy === 'date') {
+        urlObj.searchParams.set('sortBy', 'submittedDate');
+        urlObj.searchParams.set('sortOrder', 'descending');
+      } else if (filtersForSearch.sortBy === 'relevance') {
+        urlObj.searchParams.set('sortBy', 'relevance');
+        urlObj.searchParams.set('sortOrder', 'descending');
+      } else if (filtersForSearch.sortBy === 'citations') {
+        urlObj.searchParams.set('sortBy', 'relevance'); // arXiv doesn't have citations
+        urlObj.searchParams.set('sortOrder', 'descending');
+      }
+
+      console.log('Final URL with filters:', urlObj.toString());
 
       // Use the generated URL directly for fetching
       const response = await fetch(urlObj.toString(), { 
@@ -242,6 +285,7 @@ const Index = () => {
   };
 
   const handleFiltersChange = (newFilters: any) => {
+    console.log('Filters changed:', newFilters);
     setFilters(newFilters);
     saveSearchState({ filters: newFilters });
     if (searchQuery) {
