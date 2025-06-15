@@ -6,13 +6,13 @@ interface PdfExtractionResult {
   error?: string;
 }
 
-// Simple PDF text extraction without complex proxy handling
+// Simple PDF text extraction without worker
 export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResult> => {
   try {
     console.log('Starting simplified PDF extraction for:', pdfUrl);
 
-    // Disable worker to run on main thread
-    pdfjsLib.GlobalWorkerOptions.workerSrc = false as any;
+    // Properly disable worker by setting it to an empty string or undefined
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
     // Try direct fetch first
     let response: Response;
@@ -37,11 +37,16 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
       throw new Error('PDF file appears empty or corrupted');
     }
 
-    // Load PDF document
+    // Load PDF document with worker disabled
     const pdf = await pdfjsLib.getDocument({
       data: arrayBuffer,
       useWorkerFetch: false,
-      isEvalSupported: false
+      isEvalSupported: false,
+      useSystemFonts: true,
+      disableFontFace: true,
+      disableRange: true,
+      disableStream: true,
+      disableAutoFetch: true
     }).promise;
 
     console.log('PDF loaded, pages:', pdf.numPages);
