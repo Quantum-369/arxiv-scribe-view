@@ -1,7 +1,11 @@
+
+import { GoogleGenAI } from '@google/genai';
 import { Paper } from "@/types/paper";
+import { Message } from "@/types/chat";
 
 export const getChatResponse = async (
-  userMessage: string, 
+  userMessage: string,
+  conversationHistory: Message[],
   paper?: Paper, 
   geminiApiKey?: string
 ): Promise<string> => {
@@ -10,8 +14,10 @@ export const getChatResponse = async (
   }
 
   try {
-    const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
-    
+    const ai = new GoogleGenAI({
+      apiKey: geminiApiKey,
+    });
+
     let systemPrompt = "";
     
     if (paper) {
@@ -55,40 +61,55 @@ Keep responses informative but concise (under 500 words unless the user specific
       systemPrompt = "You are an expert research assistant. Help users with questions about academic research, papers, methodologies, and scientific concepts. Keep responses concise and informative. If the user's question contains grammar mistakes or unclear phrasing, understand their intent and respond appropriately while maintaining professional communication.";
     }
 
-    const prompt = `${systemPrompt}\n\nUser question: ${userMessage}`;
-
-    console.log('Sending chat request with paper content length:', paper?.fullText?.length || 0);
-
-    const body = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "text/plain",
-        maxOutputTokens: 1000,
-        temperature: 0.7
-      }
-    };
-
-    const response = await fetch(modelUrl + `?key=${geminiApiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to get AI response");
+    // Convert conversation history to Google's format
+    const contents = [];
+    
+    // Add system prompt as first user message if we have paper context
+    if (paper && systemPrompt) {
+      contents.push({
+        role: 'user',
+        parts: [{ text: systemPrompt }]
+      });
+      contents.push({
+        role: 'model',
+        parts: [{ text: 'I understand. I\'m ready to help you analyze this paper. What would you like to know?' }]
+      });
     }
 
-    const result = await response.json();
-    
-    if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
-      return result.candidates[0].content.parts[0].text.trim();
+    // Add conversation history (skip the welcome message)
+    const filteredHistory = conversationHistory.filter(msg => msg.id !== '1');
+    for (const message of filteredHistory) {
+      contents.push({
+        role: message.type === 'user' ? 'user' : 'model',
+        parts: [{ text: message.content }]
+      });
+    }
+
+    // Add current user message
+    contents.push({
+      role: 'user',
+      parts: [{ text: userMessage }]
+    });
+
+    console.log('Sending chat request with conversation history length:', contents.length);
+    console.log('Paper content length:', paper?.fullText?.length || 0);
+
+    const config = {
+      responseMimeType: 'text/plain',
+      maxOutputTokens: 4096,
+      temperature: 0.7
+    };
+
+    const model = 'gemini-2.5-flash-preview-05-20';
+
+    const response = await ai.models.generateContent({
+      model,
+      config,
+      contents
+    });
+
+    if (response.text) {
+      return response.text.trim();
     } else {
       throw new Error("Invalid response format");
     }

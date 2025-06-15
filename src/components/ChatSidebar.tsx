@@ -48,7 +48,8 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
     setIsLoading(true);
 
     try {
-      const aiResponse = await getChatResponse(currentInput, paper, geminiApiKey);
+      // Pass the full conversation history to getChatResponse
+      const aiResponse = await getChatResponse(currentInput, messages, paper, geminiApiKey);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
