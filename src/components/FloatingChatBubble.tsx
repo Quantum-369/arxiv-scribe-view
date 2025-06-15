@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,13 +15,14 @@ const FloatingChatBubble = ({ paper, geminiApiKey }: FloatingChatBubbleProps) =>
 
   if (isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 w-full max-w-sm lg:w-96 h-96 bg-white border border-gray-200 rounded-lg shadow-xl z-50 mx-4 lg:mx-0">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900 text-sm lg:text-base">Chat with Paper</h3>
+      <div className="fixed bottom-4 right-4 w-full max-w-sm lg:w-96 h-96 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 mx-4 lg:mx-0 overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-semibold text-gray-900 text-sm">Chat with Paper</h3>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsOpen(false)}
+            className="h-8 w-8 p-0"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -35,10 +37,10 @@ const FloatingChatBubble = ({ paper, geminiApiKey }: FloatingChatBubbleProps) =>
   return (
     <Button
       onClick={() => setIsOpen(true)}
-      className="fixed bottom-6 right-6 h-12 w-12 lg:h-14 lg:w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg z-40"
+      className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-xl z-40 transition-all duration-200 hover:scale-105"
       size="icon"
     >
-      <MessageSquare className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+      <MessageSquare className="h-6 w-6 text-white" />
     </Button>
   );
 };
