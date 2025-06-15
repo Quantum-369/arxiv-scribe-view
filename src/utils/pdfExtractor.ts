@@ -33,8 +33,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Starting PDF extraction for:', pdfUrl);
 
-    // Completely disable worker to avoid hanging issues
-    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+    // Properly disable worker - use false instead of null
+    pdfjsLib.GlobalWorkerOptions.workerSrc = false;
     console.log("PDF.js worker disabled - running on main thread");
 
     console.log('Fetching PDF from:', pdfUrl);
