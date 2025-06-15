@@ -1,4 +1,3 @@
-
 export interface ArxivPaper {
   id: string; // e.g., arxiv URL
   title: string;
@@ -29,47 +28,50 @@ export function buildArxivQuery(params: {
   let q: string[] = [];
 
   if (params.searchTerms && params.searchTerms.length > 0) {
-    // For arXiv, join terms by 'AND'
-    q.push(params.searchTerms.map((t) => `all:${t}`).join("+AND+"));
+    // Be more flexible with search terms - use OR instead of AND for broader results
+    const searchQuery = params.searchTerms.map((t) => `all:"${t}"`).join("+OR+");
+    q.push(`(${searchQuery})`);
   }
 
-  if (params.category && params.category !== "all") {
-    // Handle both old format (cs.AI) and new format (cs.AI)
-    const categoryCode = params.category.includes('.') ? params.category : params.category;
-    q.push(`cat:${categoryCode}`);
+  // Only apply category filter if it's a specific arXiv category, not general terms
+  if (params.category && params.category !== "all" && params.category.includes('.')) {
+    q.push(`cat:${params.category}`);
   }
 
   if (params.author) {
-    q.push(`au:${params.author}`);
+    q.push(`au:"${params.author}"`);
   }
 
   if (params.year) {
-    // arXiv uses submittedDate for filtering by year
     q.push(`submittedDate:[${params.year}01010000+TO+${params.year}12312359]`);
   }
 
-  // Handle sorting - default to submittedDate for latest papers
-  let sortBy = "submittedDate"; // Default to date sorting for latest papers
-  let sortOrder = "descending"; // Latest first
+  // If no specific search terms, use a broader search
+  const finalQuery = q.length > 0 ? q.join("+AND+") : "all:*";
+
+  // Handle sorting
+  let sortBy = "submittedDate";
+  let sortOrder = "descending";
   
   if (params.sortBy === "relevance") {
     sortBy = "relevance";
     sortOrder = "descending";
   } else if (params.sortBy === "citations") {
-    sortBy = "relevance"; // arXiv API doesn't support citations, use relevance
+    sortBy = "relevance"; // arXiv API doesn't support citations
     sortOrder = "descending";
   }
-  // If sortBy is "date" or undefined, use submittedDate
 
   const queryString = [
-    `search_query=${encodeURIComponent(q.join("+AND+") || "all:")}`,
+    `search_query=${encodeURIComponent(finalQuery)}`,
     `sortBy=${sortBy}`,
     `sortOrder=${sortOrder}`,
     `max_results=${params.maxResults ?? 50}`,
     `start=${params.startIndex ?? 0}`,
   ].join("&");
 
-  return BASE_URL + "?" + queryString;
+  const finalUrl = BASE_URL + "?" + queryString;
+  console.log('Built arXiv URL:', finalUrl);
+  return finalUrl;
 }
 
 export async function fetchArxivPapers(

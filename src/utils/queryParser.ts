@@ -1,4 +1,3 @@
-
 export interface ParsedQuery {
   searchTerms: string[];
   category?: string;
@@ -13,46 +12,24 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
   };
 
   // Date parsing
-  if (lowerQuery.includes('today') || lowerQuery.includes('recent')) {
-    const today = new Date();
-    result.dateFilter = today.getFullYear().toString();
-  } else if (lowerQuery.includes('yesterday')) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    result.dateFilter = yesterday.getFullYear().toString();
-  } else if (lowerQuery.includes('this week')) {
-    const thisWeek = new Date();
-    result.dateFilter = thisWeek.getFullYear().toString();
-  } else if (lowerQuery.includes('this month')) {
-    const thisMonth = new Date();
-    result.dateFilter = thisMonth.getFullYear().toString();
+  if (lowerQuery.includes('recent') || lowerQuery.includes('latest') || lowerQuery.includes('new')) {
+    const currentYear = new Date().getFullYear();
+    result.dateFilter = currentYear.toString();
   }
 
-  // Category parsing
-  const categoryMappings: Record<string, string> = {
-    'ai': 'computer-science',
-    'artificial intelligence': 'computer-science',
-    'machine learning': 'computer-science',
-    'ml': 'computer-science',
-    'deep learning': 'computer-science',
-    'neural networks': 'computer-science',
-    'computer science': 'computer-science',
-    'cs': 'computer-science',
-    'physics': 'physics',
-    'mathematics': 'mathematics',
-    'math': 'mathematics',
-    'biology': 'biology',
-    'bio': 'biology',
-    'economics': 'economics',
-    'statistics': 'statistics',
-    'stats': 'statistics'
-  };
+  // Extract year mentions (2020, 2021, etc.)
+  const yearMatch = query.match(/\b(20[0-2][0-9])\b/);
+  if (yearMatch) {
+    result.dateFilter = yearMatch[1];
+  }
 
-  for (const [keyword, category] of Object.entries(categoryMappings)) {
-    if (lowerQuery.includes(keyword)) {
-      result.category = category;
-      break;
-    }
+  // Much simpler category detection - only for very specific terms
+  if (lowerQuery.includes('computer science') || lowerQuery.includes('cs.')) {
+    result.category = 'cs';
+  } else if (lowerQuery.includes('physics') && !lowerQuery.includes('bio')) {
+    result.category = 'physics';
+  } else if (lowerQuery.includes('mathematics') || lowerQuery.includes('math.')) {
+    result.category = 'math';
   }
 
   // Sort parsing
@@ -64,36 +41,20 @@ export const parseNaturalLanguageQuery = (query: string): ParsedQuery => {
     result.sortBy = 'relevance';
   }
 
-  // Extract search terms (remove common words and parsed terms)
-  const commonWords = [
-    'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into',
-    'through', 'during', 'before', 'after', 'above', 'below', 'between', 'among', 'around',
-    'today', 'yesterday', 'recent', 'latest', 'newest', 'published', 'papers', 'paper', 'most', 'cited', 'popular',
-    'this', 'week', 'month', 'year', "today's"
-  ];
-
-  // Remove category keywords too
-  const categoryKeywords = Object.keys(categoryMappings);
-
+  // Much more permissive search term extraction
+  const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'papers', 'paper'];
+  
   const words = query
     .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
     .split(/\s+/)
-    .filter(word =>
-      word.length > 2 &&
-      !commonWords.includes(word) &&
-      !categoryKeywords.some(keyword => keyword.includes(word) || word.includes(keyword))
+    .filter(word => 
+      word.length > 2 && 
+      !commonWords.includes(word)
     );
 
-  // Only include words which are not just noise
-  result.searchTerms = words;
-
-  // If searchTerms only includes noise like "weeks", "published", etc, set it to [].
-  if (
-    result.searchTerms.length === 1 &&
-    ['week', 'weeks', 'month', 'year', 'today', 'yesterday', "today's", 'papers', 'paper'].includes(result.searchTerms[0])
-  ) {
-    result.searchTerms = [];
-  }
+  // Keep most words as search terms - be much less aggressive in filtering
+  result.searchTerms = words.slice(0, 5); // Limit to 5 terms max for better results
 
   return result;
 };

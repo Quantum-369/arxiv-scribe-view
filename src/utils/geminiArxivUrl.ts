@@ -1,32 +1,30 @@
 
 /**
  * Utility for generating arXiv search URLs using Google Gemini LLM.
- * You must provide VITE_GEMINI_API_KEY as an environment variable.
  */
 export async function getArxivUrlFromQuery(
   userQuery: string,
   apiKey: string
 ): Promise<string | null> {
-  // Gemini Instructions: Convert the user query to a valid arXiv API query URL
   const modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
   const systemPrompt = `
-You are an expert at constructing arXiv API search URLs.
-When given ANY user search query for academic papers, convert it into an optimal arXiv search API URL (https://export.arxiv.org/api/query?...) to retrieve as many relevant results as possible.
+You are an expert at constructing arXiv API search URLs that return many relevant results.
 
-Guidelines:
-- Use search_query parameter with appropriate terms
-- For topics like "machine learning", use: search_query=all:machine+learning
-- For specific fields, use category filters like: cat:cs.LG for machine learning
-- For recent papers, use submittedDate ranges
-- Always include max_results (suggest 16-32)
-- Use sortBy=submittedDate for recent papers, sortBy=relevance for general searches
+Convert user queries into arXiv API URLs. Be VERY GENEROUS with search terms to avoid zero results.
+
+Key rules:
+- Use broad search terms with OR operators for more results
+- For interdisciplinary topics like "Economics and AI", search across multiple fields
+- Don't over-constrain with category filters unless very specific
+- Use "all:" prefix for broad searches
+- Always aim for 20-50 results minimum
 
 Examples:
-- "machine learning papers" → https://export.arxiv.org/api/query?search_query=all:machine+learning&sortBy=relevance&max_results=16
-- "recent AI papers" → https://export.arxiv.org/api/query?search_query=cat:cs.AI&sortBy=submittedDate&max_results=16
-- "quantum computing 2024" → https://export.arxiv.org/api/query?search_query=all:quantum+computing+AND+submittedDate:[202401010000+TO+202412312359]&sortBy=submittedDate&max_results=16
+- "Economics and AI impact" → https://export.arxiv.org/api/query?search_query=all:"economics"+OR+all:"economic"+OR+all:"AI"+OR+all:"artificial+intelligence"&sortBy=relevance&max_results=30
+- "machine learning papers" → https://export.arxiv.org/api/query?search_query=all:"machine+learning"+OR+all:"ML"&sortBy=relevance&max_results=30
+- "recent quantum computing" → https://export.arxiv.org/api/query?search_query=all:"quantum+computing"+OR+all:"quantum"&sortBy=submittedDate&max_results=30
 
-ONLY RETURN the resulting URL as plain text (no commentary, no code blocks, no quotes).
+ONLY return the URL, nothing else.
 `;
 
   const prompt = `${systemPrompt}\nUser Query: "${userQuery}"`;
@@ -58,7 +56,6 @@ ONLY RETURN the resulting URL as plain text (no commentary, no code blocks, no q
 
     const result = await response.json();
     
-    // Extract the response text
     let text: string = "";
     if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
       text = result.candidates[0].content.parts[0].text.trim();
@@ -66,7 +63,6 @@ ONLY RETURN the resulting URL as plain text (no commentary, no code blocks, no q
     
     console.log("Gemini response:", text);
     
-    // Find http(s) link in response
     const urlMatch = text.match(/https?:\/\/[^\s)'"`]+/);
     return urlMatch ? urlMatch[0] : null;
   } catch (error) {
