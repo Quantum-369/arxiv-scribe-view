@@ -33,8 +33,8 @@ export const extractPdfText = async (pdfUrl: string): Promise<PdfExtractionResul
   try {
     console.log('Fetching PDF from:', pdfUrl);
 
-    // Use a more reliable worker setup - use jsdelivr CDN which is more stable
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    // Use local worker file hosted in public directory to avoid CDN issues
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
     let response: Response | null = null;
     let lastError: Error | null = null;
