@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, MessageSquare, AlertCircle, Sparkles } from "lucide-react";
 import { Message, ChatSidebarProps } from "@/types/chat";
-import { getChatResponse } from "@/utils/geminiApi";
+import { getChatResponseStream } from "@/utils/geminiApi";
 import ChatStatusIndicators from "./ChatStatusIndicators";
 import ChatMessage from "./ChatMessage";
 import ChatLoadingIndicator from "./ChatLoadingIndicator";
@@ -31,6 +31,7 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
@@ -47,29 +48,50 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
     setInputValue('');
     setIsLoading(true);
 
+    // Create assistant message for streaming
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      type: 'assistant',
+      content: '',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+    setStreamingMessageId(assistantMessageId);
+
     try {
-      // Pass the full conversation history to getChatResponse
-      const aiResponse = await getChatResponse(currentInput, messages, paper, geminiApiKey);
+      let fullContent = '';
       
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: aiResponse,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+      await getChatResponseStream(
+        currentInput, 
+        messages, 
+        paper, 
+        geminiApiKey,
+        (chunk: string) => {
+          fullContent += chunk;
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: fullContent }
+                : msg
+            )
+          );
+        }
+      );
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
-        content: "I apologize, but I encountered an error processing your request. Please check your API key and try again, or rephrase your question.",
-        timestamp: new Date()
-      };
+      const errorContent = "I apologize, but I encountered an error processing your request. Please check your API key and try again, or rephrase your question.";
       
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: errorContent }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
+      setStreamingMessageId(null);
     }
   };
 
@@ -126,9 +148,13 @@ const ChatSidebar = ({ paper, geminiApiKey }: ChatSidebarProps) => {
         <div className="space-y-6">
           <ChatStatusIndicators paper={paper} />
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage 
+              key={message.id} 
+              message={message}
+              isStreaming={streamingMessageId === message.id}
+            />
           ))}
-          {isLoading && <ChatLoadingIndicator />}
+          {isLoading && !streamingMessageId && <ChatLoadingIndicator />}
         </div>
       </ScrollArea>
 

@@ -4,9 +4,10 @@ import { User, Bot } from "lucide-react";
 
 interface ChatMessageProps {
   message: Message;
+  isStreaming?: boolean;
 }
 
-const ChatMessage = ({ message }: ChatMessageProps) => {
+const ChatMessage = ({ message, isStreaming = false }: ChatMessageProps) => {
   const isUser = message.type === 'user';
   
   return (
@@ -43,16 +44,23 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
             ) : (
               message.content
             )}
+            {isStreaming && !isUser && (
+              <span className="inline-block w-2 h-4 bg-academic-blue/60 ml-1 animate-pulse"></span>
+            )}
           </div>
         </div>
         
         <div className={`text-xs mt-2 ${
           isUser ? 'text-right text-slate-500' : 'text-left text-slate-500'
         }`}>
-          {message.timestamp.toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
+          {isStreaming && !isUser ? (
+            <span className="text-academic-blue">AI is typing...</span>
+          ) : (
+            message.timestamp.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })
+          )}
         </div>
       </div>
       
